@@ -90,7 +90,8 @@ Modelled on SpeedBreaker's (`runtime/ui/settings_menu.cpp`, Dear ImGui over Vulk
 - **Options:** one table per game (`nfsu2_options.c`): settings.ini rows (`key`, `values`, `apply`) or the game's own
   Options rows (`get`/`set` into `recomp_manual.c`'s `nfsu2_option_get/set`). Made live for the menu: draw distance
   (`nfsu2_set_draw_distance`), gamma and effects (`nv2a_mtl_post_reload`: the post settings are read again at the next
-  frame), motion blur (`nv2a_mtl_blur_off`), volume (`xa2_set_master_volume`), fps counter. Frame Rate and Keyboard as
+  frame; `post_frame` calls `post_settings` every flip, which at first only the shader build did, so Gamma and Effects
+  needed a restart until the user noticed), motion blur (`nv2a_mtl_blur_off`), volume (`xa2_set_master_volume`), fps counter. Frame Rate and Keyboard as
   Controller stay "restart".
 - **Tests:** `NFSU2_OVERLAY_SCRIPT="25:open,26:next,27:down,28:right,29:shot,30:close"` runs menu steps; `NFSU2_OVERLAY_SHOT`
   makes the drawable readable and writes `shot<n>.bmp`. `tools/smoke.sh` opens and closes the menu. Checked from shots: every
