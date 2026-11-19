@@ -38,7 +38,7 @@
 
 static int   s_post_init_done;
 /* The overlay changed NFSU2_GAMMA / NFSU2_AO / NFSU2_BLOOM: read them again
- * at the next frame (post_settings runs on this thread). */
+ * at the next flip (post_frame calls post_settings, on this thread). */
 void nv2a_mtl_post_reload(void) { s_post_init_done = 0; }
 static int   s_gamma_on, s_ao_on, s_post_debug;
 static float s_bloom_k;
@@ -236,6 +236,7 @@ static void post_settings(void)
         return;
     s_post_init_done = 1;
     s_gamma_v[0] = s_gamma_v[1] = s_gamma_v[2] = s_gamma_v[3] = 1.0f;
+    s_gamma_on = 0;                 /* Original again after Modern/Warm (the overlay) */
     e = getenv("NFSU2_GAMMA");
     if (e && !strcmp(e, "modern")) {
         s_gamma_v[0] = 2.2f / 2.5f; s_gamma_on = 1;
@@ -415,6 +416,7 @@ static void post_scene_hook(MtSurf *s, MtDepth *d, const uint32_t *r)
 /* At every flip: a new frame, and the presented width for the next one. */
 static void post_frame(MtSurf *presented)
 {
+    post_settings();                /* again after nv2a_mtl_post_reload (the overlay's Gamma/Effects) */
     s_post_frames++;
     if (s_post_frames % 600 == 0 && (s_ao_on || s_bloom_k > 0))
         fprintf(stderr, "[post] scene effects ran in %u of the last 600 frames\n", s_post_runs),
