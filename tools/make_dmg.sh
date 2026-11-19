@@ -17,7 +17,7 @@ cmake --build build/release >/dev/null
 
 rm -rf "$OUT" && mkdir -p "$APP/Contents/MacOS" "$KIT/mac/icon" "$KIT/libs" "$KIT/licenses"
 # the installer
-cp installer/install.sh "$APP/Contents/MacOS/installer"
+cp installer/install.sh "$APP/Contents/MacOS/installer" && chmod 755 "$APP/Contents/MacOS/installer"
 cp installer/clt.sh installer/progress.js VERSION "$KIT/"
 cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
