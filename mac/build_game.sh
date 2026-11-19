@@ -14,7 +14,7 @@ abs() { (cd "$(dirname "$1")" && echo "$(pwd -P)/$(basename "$1")"); }   # regen
 KIT="$(abs "$KIT")" DISC="$(abs "$DISC")" FW="$(abs "$FW")" WORK="$(abs "$WORK")" OUT="$(abs "$OUT")"
 report() { echo "$1 $2" >> "$PROG"; echo "build_game: [$1%] $2"; }
 die() { echo "build_game: ERROR $1" >&2; exit 1; }
-CC="$(xcrun -f clang)" || die "no clang (Command Line Tools)"
+CC="$(xcrun -f clang)" && CXX="$(xcrun -f clang++)" || die "no clang (Command Line Tools)"
 SDK="$(xcrun --show-sdk-path 2>/dev/null)"
 [[ -d "$SDK" ]] || die "no macOS SDK in the Command Line Tools (xcrun --show-sdk-path)"
 [[ -f "$DISC/default.xbe" ]] || die "no default.xbe in $DISC"
@@ -56,7 +56,7 @@ report 92 "Linking the game"
 FWA="$(cd "$FW" && pwd)"
 args=(); while IFS= read -r l; do l="${l//@KIT@/$KIT}"; args+=("${l//@FW@/$FWA}"); done < "$KIT/lib/link.txt"
 mkdir -p "$(dirname "$OUT")"
-"$CC" -isysroot "$SDK" -arch arm64 -mmacosx-version-min=15.0 -Wl,-headerpad_max_install_names \
+"$CXX" -isysroot "$SDK" -arch arm64 -mmacosx-version-min=15.0 -Wl,-headerpad_max_install_names \
   -Wl,-rpath,@executable_path/../Frameworks -o "$OUT.tmp" "$WORK"/obj/*.o "${args[@]}" > "$WORK/link.log" 2>&1 \
   || die "link failed: $(grep -m2 -i error "$WORK/link.log")"
 mv "$OUT.tmp" "$OUT"
