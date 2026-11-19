@@ -10,7 +10,8 @@ A log of the steps, the decisions and what went wrong, for the next port (NFS Un
 | Engine patches | [LeoDeadware/NFSU2Deadware](https://github.com/LeoDeadware/NFSU2Deadware) `patches/` | its 26 patches for `85d2cbf` |
 | Disc | Xbox USA, `default.xbe` SHA-1 `428b5a70b9400f19cc5be7679db6c72a6f80a1c9`, 4,038,656 bytes, title `0x4541005A` | |
 
-`tools/fetch.sh` clones the base into `upstream/` (ignored) and `git am`s `patches/`.
+At first `tools/fetch.sh` cloned the base and `git am`ed `patches/`; since the overlay work the patched tree is in the
+repository as `engine/` (section 5), the patches kept in `docs/upstream-patches/` as the record.
 
 ## 1. A clean patch set
 
@@ -65,6 +66,36 @@ The DMG holds no game code: the installer imports the disc, lifts `default.xbe` 
   player folder. DMG 4.6 MB. Proven negative: a DMG with 1.2 MB of `default.xbe` (19 windows)
   and a lifted chunk renamed `notes.txt` (398 names) fails.
 
+## 5. A self-contained repository
+
+The port must build from this repository alone (the user's rule for all the ports): `git archive` of the patched tree went into
+`engine/` (535 files, 10 MB; its `CLAUDE.md` moved to `engine/docs/NFSU2_IOS_AGENT_NOTES.md` so it doesn't instruct agents
+working here), `patches/` to `docs/upstream-patches/` with a README, `tools/fetch.sh` removed. `engine/gen/` (the lift) is
+ignored. `publish_check.sh` allows one file it would flag: xboxrecomp's 4 KB synthetic `conformance/test.xbe` (its `mkxbe.py`).
+
+## 6. The settings menu (overlay)
+
+Modelled on SpeedBreaker's (`runtime/ui/settings_menu.cpp`, Dear ImGui over Vulkan): written anew for this engine in
+`engine/src/overlay/` so every port can take it.
+
+- **Drawing:** Dear ImGui 1.92.9 (the core as in SpeedBreaker, the Metal backend from the same tag) draws into the drawable in
+  `nv2a_metal.m`'s `present()`, after the game's picture and the fps counter, through a hook (`nv2a_mtl_overlay_hook`) so
+  the renderer doesn't depend on the menu. Roboto Medium is compiled in (CMake writes it as a byte array).
+- **Threads:** the game presents on its render thread; SDL events come on the main thread. `overlay_event` (main) turns keys,
+  pad buttons, the stick and the mouse into menu actions on a locked queue; `overlay_present_metal` (render) runs them and
+  lays the menu out. Full screen, Quit and opening Finder are requested back to the main thread (`overlay_main_tick`, run each
+  turn of the event loop, which now waits at most 16-50 ms instead of forever).
+- **Input:** `xbox_input_blocked` (xinput_device.c) gives the game a connected, neutral pad while the menu is open and after,
+  until every key and button is up (so B closing the menu doesn't reach the game). Key releases still go to the keyboard pad.
+- **Options:** one table per game (`nfsu2_options.c`): settings.ini rows (`key`, `values`, `apply`) or the game's own
+  Options rows (`get`/`set` into `recomp_manual.c`'s `nfsu2_option_get/set`). Made live for the menu: draw distance
+  (`nfsu2_set_draw_distance`), gamma and effects (`nv2a_mtl_post_reload`: the post settings are read again at the next
+  frame), motion blur (`nv2a_mtl_blur_off`), volume (`xa2_set_master_volume`), fps counter. Frame Rate and Keyboard as
+  Controller stay "restart".
+- **Tests:** `NFSU2_OVERLAY_SCRIPT="25:open,26:next,27:down,28:right,29:shot,30:close"` runs menu steps; `NFSU2_OVERLAY_SHOT`
+  makes the drawable readable and writes `shot<n>.bmp`. `tools/smoke.sh` opens and closes the menu. Checked from shots: every
+  page, a live change saved to `settings.ini`, the "restart" mark, the Quit prompt.
+
 ## Pitfalls (each cost a run)
 
 - **zsh doesn't split `$VAR` into words:** `AM="git am -q"; $AM p` is "command not found". Use a function.
@@ -76,4 +107,9 @@ The DMG holds no game code: the installer imports the disc, lifts `default.xbe` 
   ignores disc files under 64 bytes, and `recomp_manual.c` (upstream's hand-written overrides) by name.
 - **The lifted C is split 250 functions a file:** a "more than 2000 names" check missed a renamed chunk; 150 catches it
   (`recomp_manual.c` has 77).
+- **sdl2-compat loads `libSDL3.dylib`:** `build/deps` had only `libSDL3.0.dylib`, so the dev build aborted at start with an
+  empty log; `build_deps.sh` adds the symlink (the app's `Frameworks/` has the right name).
+- **A pipe hides a failed check:** `publish_check.sh | tail` let a commit through; run checks unpiped before committing.
+- **`nv2a_metal` is built with `-Wno-unguarded-availability`:** "no availability warnings for macOS 15" needed a compile of it
+  with them on (none).
 - **`apple_main.c` declares `s_win` after `set_full`:** functions for the Settings window that use it go after that declaration.
