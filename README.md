@@ -45,7 +45,7 @@ You need an **Apple Silicon Mac with macOS 15 or newer** and your own disc image
 5. **NFS Underground 2** is put in Applications (in `~/Applications` when Applications isn't writable) and opens. Play it from
    there; you can delete the disc image and the installer afterwards. Opening the installer again offers Play or Rebuild.
 
-**Settings:** **NFS Underground 2 > Settings…** (**Cmd+,**) in the menu bar:
+**Settings:** **F1** (on a MacBook: **fn+F1**, unless the F-keys are set as standard keys) or **Cmd+,** or **NFS Underground 2 > Settings…** in the menu bar:
 
 | Setting | Choices | Applies |
 |---|---|---|

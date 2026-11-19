@@ -1,0 +1,87 @@
+From 765f9476e6d3006d4b30c4248dd0ab5d73ffbe54 Mon Sep 17 00:00:00 2001
+From: Oleksandr Kostenko <sanyokkua@gmail.com>
+Date: Thu, 19 Nov 2026 11:10:00 +0100
+Subject: [PATCH] macOS: F1 opens the Settings window (Cmd+, too)
+
+---
+ src/apple/apple_main.c |  4 ++++
+ src/apple/apple_menu.h |  3 +++
+ src/apple/apple_menu.m | 12 +++++++++---
+ 3 files changed, 16 insertions(+), 3 deletions(-)
+
+diff --git a/src/apple/apple_main.c b/src/apple/apple_main.c
+index f8718c4..f5bcfdb 100644
+--- a/src/apple/apple_main.c
++++ b/src/apple/apple_main.c
+@@ -471,6 +471,10 @@ int main(int argc, char **argv)
+         if (e.type == SDL_JOYDEVICEADDED || e.type == SDL_JOYDEVICEREMOVED)
+             ios_touch_controllers_changed();
+ #else
++        if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_F1 && !e.key.repeat) {
++            apple_settings_show();              /* F1 (and Cmd+, in the menu): Settings */
++            continue;
++        }
+         if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_F11 && !e.key.repeat && s_win)
+             set_full(s_win, !s_full);
+         if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_F && !e.key.repeat &&
+diff --git a/src/apple/apple_menu.h b/src/apple/apple_menu.h
+index ad79545..03f6de1 100644
+--- a/src/apple/apple_menu.h
++++ b/src/apple/apple_menu.h
+@@ -14,6 +14,9 @@ void apple_settings_load(void);
+ /* NFS Underground 2 > Settings... (Cmd+,) in the menu bar SDL made. */
+ void apple_menu_install(SDL_Window *win);
+ 
++/* The Settings window, as the menu item does (F1 in apple_main.c's event loop). */
++void apple_settings_show(void);
++
+ /* apple_main.c: full screen on/off (its borderless full-panel window). */
+ void apple_set_fullscreen(int on);
+ int apple_is_fullscreen(void);
+diff --git a/src/apple/apple_menu.m b/src/apple/apple_menu.m
+index 080af75..fb74262 100644
+--- a/src/apple/apple_menu.m
++++ b/src/apple/apple_menu.m
+@@ -3,7 +3,7 @@
+  *
+  * The same window as the NFS Underground port's (nfsu1-xbox-port), with the
+  * NFSU2 rows. SDL makes the menu bar (app menu with Quit, Cmd+Q); this adds
+- * Settings... to the app menu:
++ * Settings... to the app menu (Cmd+,; F1 opens it too, apple_main.c):
+  *
+  *   Display           Window / Full Screen       now, and at the next start
+  *   Resolution Scale  1x .. 4x                   now: the same value as the
+@@ -122,6 +122,8 @@ static const int k_scale_pct[] = { 100, 150, 200, 250, 400 };
+ @property (strong) NSPopUpButton *scale;
+ @end
+ 
++static NFSSettings *s_settings;
++
+ @implementation NFSSettings
+ 
+ static NSTextField *label(NSString *s)
+@@ -250,7 +252,11 @@ static NSTextField *note(NSString *s)
+ 
+ @end
+ 
+-static NFSSettings *s_settings;
++void apple_settings_show(void)
++{
++    if (s_settings)
++        [s_settings show:nil];
++}
+ 
+ void apple_menu_install(SDL_Window *win)
+ {
+@@ -280,7 +286,7 @@ void apple_menu_install(SDL_Window *win)
+         [app insertItem:item atIndex:at];
+         [app insertItem:[NSMenuItem separatorItem] atIndex:at + 1];
+     }
+-    item.title = @"Settings…";
++    item.title = @"Settings… (F1)";
+     item.keyEquivalent = @",";
+     item.keyEquivalentModifierMask = NSEventModifierFlagCommand;
+     item.action = @selector(show:);
+-- 
+2.56.1
+

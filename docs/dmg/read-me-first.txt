@@ -12,6 +12,6 @@ Need for Speed: Underground 2 for the original Xbox, USA.
    ~/Library/Application Support/NFS Underground 2, translates the game's program to C and compiles it on
    your Mac (a few minutes, once).
 4. "NFS Underground 2" is put in Applications and opens. Play it from there from now on.
-   Settings: NFS Underground 2 > Settings... (Cmd+,). Full screen on/off: F11.
+   Settings: F1 (fn+F1 on a MacBook) or Cmd+,. Full screen on/off: F11.
 
 This DMG holds no game code and no game data. Details, credits and the source: https://github.com/sanyokkua/nfsu2-xbox-port
