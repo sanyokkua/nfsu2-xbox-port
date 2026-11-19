@@ -1,0 +1,20 @@
+NFS Underground 2 for Mac
+Copyright (C) 2026 Oleksandr Kostenko (sanyokkua) and contributors
+
+This program is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as
+published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version. See LICENSE.
+
+This project is built on nfsu2-ios by myUdav4iik (https://github.com/myUdav4iik/nfsu2-ios), the Apple port of nfsu2-sw by
+antoxa2584x (Anton Artemov, https://github.com/antoxa2584x/nfsu2-sw): the static recompilation of the game and its runtime. Their
+files keep their authorship; this project's changes to them are in patches/. Anyone reusing this project's code: keep this
+credit, and the links to their projects, with it.
+
+patches/0001-0024 are NFSU2Deadware's by LeoDeadware (https://github.com/LeoDeadware/NFSU2Deadware, MIT,
+LICENSES/MIT-NFSU2Deadware.txt), without its HD texture and translation patches; the installer's kit builder, build and import
+scripts adapt its tools (MIT). xboxrecomp by sp00nz is MIT (LICENSES/MIT-xboxrecomp.txt); its APU and NV2A parts from xemu are
+LGPL-2.1-or-later (LICENSES/LGPL-2.1-xemu.txt, LICENSES/NOTICE-xboxrecomp.txt): the installer ships them as object files and
+links them on the player's Mac, so they can be relinked with modified versions. Third-party libraries: THIRD_PARTY_NOTICES.md.
+
+No game code or data is part of this project or its releases: the game is built on the player's Mac from their own disc.
+Need for Speed and Underground are trademarks of Electronic Arts Inc. Xbox is a trademark of Microsoft. This is an unofficial fan
+project, not affiliated with or endorsed by Electronic Arts or Microsoft.
