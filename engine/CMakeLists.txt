@@ -83,6 +83,8 @@ target_link_libraries(${PROJECT_NAME} PRIVATE xboxrecomp)
 if(APPLE)
     set_property(SOURCE ${NFSU2_MANUAL_SOURCE} APPEND PROPERTY COMPILE_OPTIONS "-ffp-contract=off")
     enable_language(OBJC)
+    enable_language(CXX)
+    enable_language(OBJCXX)
     target_sources(${PROJECT_NAME} PRIVATE src/apple/apple_main.c src/apple/apple_game_state.c src/apple/apple_perf.m
                                            src/apple/apple_keyboard.c src/apple/apple_textures.m
                                            src/apple/apple_prompts.m src/apple/apple_window.m
@@ -95,6 +97,33 @@ if(APPLE)
                                 INCLUDE_DIRECTORIES "${XBOXRECOMP_DIR}/src/apu")
     target_link_libraries(${PROJECT_NAME} PRIVATE "-framework Foundation" "-framework CoreGraphics"
                           "-framework ImageIO" "-framework CoreText" "-framework AppKit")
+
+    # The overlay menu (src/overlay): Dear ImGui 1.92.9 (third_party/imgui, MIT) on Metal, the Roboto
+    # Medium font (third_party/fonts, Apache-2.0) compiled in, this port's version on its Advanced page.
+    set(IMGUI_DIR ${CMAKE_CURRENT_SOURCE_DIR}/third_party/imgui)
+    add_library(imgui STATIC ${IMGUI_DIR}/imgui.cpp ${IMGUI_DIR}/imgui_draw.cpp ${IMGUI_DIR}/imgui_tables.cpp
+                ${IMGUI_DIR}/imgui_widgets.cpp ${IMGUI_DIR}/backends/imgui_impl_metal.mm)
+    target_include_directories(imgui PUBLIC ${IMGUI_DIR} ${IMGUI_DIR}/backends)
+    set_source_files_properties(${IMGUI_DIR}/backends/imgui_impl_metal.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+    file(READ ${CMAKE_CURRENT_SOURCE_DIR}/third_party/fonts/Roboto-Medium.ttf OVERLAY_FONT_HEX HEX)
+    string(REGEX REPLACE "([0-9a-f][0-9a-f])" "0x\\1," OVERLAY_FONT_BYTES "${OVERLAY_FONT_HEX}")
+    file(WRITE ${CMAKE_CURRENT_BINARY_DIR}/generated/overlay_font.inc "${OVERLAY_FONT_BYTES}\n")
+    set(PORT_VERSION "dev")
+    if(EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION)
+        file(STRINGS ${CMAKE_CURRENT_SOURCE_DIR}/../VERSION PORT_VERSION LIMIT_COUNT 1)
+    endif()
+    execute_process(COMMAND git -C ${CMAKE_CURRENT_SOURCE_DIR} rev-parse --short HEAD
+                    OUTPUT_VARIABLE PORT_COMMIT OUTPUT_STRIP_TRAILING_WHITESPACE ERROR_QUIET)
+    if(NOT PORT_COMMIT)
+        set(PORT_COMMIT "local")
+    endif()
+    target_sources(${PROJECT_NAME} PRIVATE src/overlay/overlay.mm src/overlay/nfsu2_options.c)
+    set_source_files_properties(src/overlay/overlay.mm PROPERTIES COMPILE_OPTIONS "-fobjc-arc"
+                                INCLUDE_DIRECTORIES ${CMAKE_CURRENT_BINARY_DIR}/generated)
+    set_source_files_properties(src/overlay/nfsu2_options.c PROPERTIES COMPILE_DEFINITIONS
+                                "NFSU2_PORT_VERSION=\"${PORT_VERSION}\";NFSU2_PORT_COMMIT=\"${PORT_COMMIT}\"")
+    target_link_libraries(${PROJECT_NAME} PRIVATE imgui "-framework Metal" "-framework QuartzCore")
+    target_link_libraries(imgui PUBLIC "-framework Metal" "-framework QuartzCore" "-framework Foundation")
 endif()
 
 # iOS app: SDL's UIKit glue runs apple_main.c's main as SDL_main; Vulkan via

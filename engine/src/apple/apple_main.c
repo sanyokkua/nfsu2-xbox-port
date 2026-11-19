@@ -30,6 +30,8 @@
 #if !TARGET_OS_IPHONE
 #include <SDL_syswm.h>
 #include "apple_menu.h"
+#include "../overlay/overlay.h"
+extern void (*nv2a_mtl_overlay_hook)(void *command_buffer, void *texture);   /* nv2a_metal.m */
 void apple_player_setup(void);                 /* apple_player.c */
 int apple_player_has_game(void);
 void apple_window_full_panel(void *nswindow);   /* apple_window.m */
@@ -336,7 +338,7 @@ int main(int argc, char **argv)
                                  "and choose your disc image.", NULL);
         return 1;
     }
-    apple_settings_load();                  /* settings.ini: env defaults */
+    overlay_settings_load();                /* settings.ini: the overlay menu's values */
 #endif
 #if TARGET_OS_IPHONE
     SDL_AddEventWatch(app_events, NULL);
@@ -401,6 +403,8 @@ int main(int argc, char **argv)
 #endif
 #if !TARGET_OS_IPHONE
     apple_menu_install(s_win);              /* NFS Underground 2 > Settings... */
+    overlay_init(s_win);                    /* F1 / Back + Start: the settings menu */
+    nv2a_mtl_overlay_hook = overlay_present_metal;
     {
         const char *e = getenv("NFSU2_FULLSCREEN");
         if (s_win && !(e && !strcmp(e, "0")))
@@ -447,9 +451,8 @@ int main(int argc, char **argv)
         ios_touch_update_auto();
         if (!got_event) continue;
 #else
-        if (smoke_deadline) {
-            if (!SDL_WaitEventTimeout(&e, 50)) continue;
-        } else if (!SDL_WaitEvent(&e)) continue;
+        overlay_main_tick();                    /* the menu's requests, held keys, the pad's release */
+        if (!SDL_WaitEventTimeout(&e, overlay_is_open() ? 16 : 50)) continue;
 #endif
 #if !TARGET_OS_IPHONE
         if (e.type == SDL_WINDOWEVENT && (e.window.event == SDL_WINDOWEVENT_FOCUS_GAINED ||
@@ -471,10 +474,8 @@ int main(int argc, char **argv)
         if (e.type == SDL_JOYDEVICEADDED || e.type == SDL_JOYDEVICEREMOVED)
             ios_touch_controllers_changed();
 #else
-        if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_F1 && !e.key.repeat) {
-            apple_settings_show();              /* F1 (and Cmd+, in the menu): Settings */
+        if (overlay_event(&e))                  /* the settings menu's keys and pads */
             continue;
-        }
         if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_F11 && !e.key.repeat && s_win)
             set_full(s_win, !s_full);
         if (e.type == SDL_KEYDOWN && e.key.keysym.scancode == SDL_SCANCODE_F && !e.key.repeat &&

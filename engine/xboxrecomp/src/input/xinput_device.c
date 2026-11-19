@@ -272,6 +272,10 @@ static void open_controllers(void)
     }
 }
 
+/* Set while a host overlay (the settings menu) owns the controllers: every
+ * port reads a connected, neutral pad. */
+volatile int xbox_input_blocked;
+
 void xbox_InputInit(void)
 {
     if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER))
@@ -383,6 +387,8 @@ DWORD xbox_InputGetState(DWORD dwPort, XBOX_INPUT_STATE *pState)
     pState->Gamepad.sThumbRX = SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_RIGHTX);
     pState->Gamepad.sThumbRY =
         (SHORT)(-1 - SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_RIGHTY));
+    if (xbox_input_blocked)                  /* the overlay menu has the controllers */
+        memset(&pState->Gamepad, 0, sizeof pState->Gamepad);
 
     return ERROR_SUCCESS;
 }

@@ -37,6 +37,9 @@
  */
 
 static int   s_post_init_done;
+/* The overlay changed NFSU2_GAMMA / NFSU2_AO / NFSU2_BLOOM: read them again
+ * at the next frame (post_settings runs on this thread). */
+void nv2a_mtl_post_reload(void) { s_post_init_done = 0; }
 static int   s_gamma_on, s_ao_on, s_post_debug;
 static float s_bloom_k;
 /* s_gamma_v (exponent, tint rgb), s_present_pipe: declared in nv2a_metal.m */

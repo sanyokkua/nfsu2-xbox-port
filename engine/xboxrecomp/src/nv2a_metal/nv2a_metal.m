@@ -2328,6 +2328,7 @@ static void prewarm(void)
 }
 
 #include "nv2a_metal_post.inc"
+extern volatile int nv2a_mtl_blur_off;   /* below: the overlay's Motion Blur row */
 
 /* ── Fixed shaders: copies and clears ─────────────────────────────── */
 
@@ -2420,7 +2421,7 @@ static int ready(void)
     if (s_layer) {
         s_layer.device = s_dev;
         s_layer.pixelFormat = MTLPixelFormatBGRA8Unorm;
-        s_layer.framebufferOnly = YES;
+        s_layer.framebufferOnly = getenv("NFSU2_OVERLAY_SHOT") ? NO : YES;   /* overlay shots read it back */
         s_layer.maximumDrawableCount = 3;
 #if TARGET_OS_OSX
         /* The game paces itself (vblank emulation): presenting must not
@@ -3228,9 +3229,8 @@ static void mtl_draw_raw_inner(const Nv2aRawBatch *b)
          * right after stopping; the ring is a feedback layer): skip its composite,
          * a draw into a full-size surface sampling the 320x240 ring
          * 0x82EBA380/0x82F05400. NFSU2_BLUR_OFF=0 keeps the title's blur. */
-        static int blur_off = -1;
-        if (blur_off < 0) { const char *e = getenv("NFSU2_BLUR_OFF"); blur_off = !(e && *e == '0'); }
-        if (blur_off && s->w >= 640)
+        if (nv2a_mtl_blur_off < 0) { const char *e = getenv("NFSU2_BLUR_OFF"); nv2a_mtl_blur_off = !(e && *e == '0'); }
+        if (nv2a_mtl_blur_off && s->w >= 640)
             for (i = 0; i < 4; i++)
                 if (sampled[i] && sampled[i]->w == 320 && sampled[i]->h == 240 &&
                     ((sampled[i]->va & 0x0FFFFFFFu) == 0x02EBA380u || (sampled[i]->va & 0x0FFFFFFFu) == 0x02F05400u))
@@ -3612,6 +3612,9 @@ static void skip_indicator(id<MTLTexture> dst)
  * nv2a_mtl_fps_overlay). Top-left: frames in the last second, then the worst
  * frame of that second in ms, as 3x5 digits drawn with scissored clears. */
 volatile int nv2a_mtl_fps_overlay;
+volatile int nv2a_mtl_blur_off = -1;     /* NFSU2_BLUR_OFF, or the overlay's Motion Blur row */
+/* The overlay menu (src/overlay), drawn into the drawable after the frame. */
+void (*nv2a_mtl_overlay_hook)(void *command_buffer, void *texture);
 static void fps_overlay(id<MTLTexture> dst)
 {
     static double last_t, win_t, worst, shown_worst;
@@ -3731,6 +3734,8 @@ static void present(MtSurf *s)
     s_copy_fxaa = 0;
     skip_indicator(drawable.texture);
     fps_overlay(drawable.texture);
+    if (nv2a_mtl_overlay_hook)
+        nv2a_mtl_overlay_hook((__bridge void *)s_cb, (__bridge void *)drawable.texture);
     {
         static int timing = -1;
         if (timing < 0) {

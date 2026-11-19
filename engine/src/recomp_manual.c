@@ -1192,15 +1192,21 @@ static int32_t sphere_fade(uint32_t obj, uint32_t p, float r, int *pcmp, uint16_
  * owner 2026-11-07 "залізні 60 fps") multiplies the size the drawer sees: objects stay
  * drawn and keep their finer model f times as far. 1 = the original. Not
  * applied in the RECOMP_NATIVE_CHECK=1 comparison mode. */
+static volatile float s_draw_distance = -1.0f;
+void nfsu2_set_draw_distance(float f)
+{
+    s_draw_distance = f >= 0.5f && f <= 8.0f ? f : 1.0f;
+}
 static float draw_distance(void)
 {
-    static float f = -1.0f;
+    float f = s_draw_distance;
     if (f < 0.0f) {
         const char *e = getenv("NFSU2_DRAW_DISTANCE");
         f = e ? (float)atof(e) : 1.0f;
         if (!(f >= 0.5f && f <= 8.0f))
             f = 1.0f;
         fprintf(stderr, "[draw] scenery draw distance x%.2f%s\n", f, f == 1.0f ? " (original)" : "");
+        s_draw_distance = f;
     }
     return f;
 }
@@ -2328,27 +2334,52 @@ static void options_save(void)
     fclose(f);
 }
 
+/* The overlay menu (src/overlay/nfsu2_options.c): the Options rows' values as
+ * choice indexes, read and changed from outside the game's own menu, saved the
+ * same way. which: 0 Car Reflections (0/1), 1 Resolution Scale (into
+ * s_scale_pct), 2 Anti-Aliasing (0/1), 3 Anisotropic (into s_aniso_lvl),
+ * 4 Square Pixels (0/1), 5 Vibration (0..10, x10%). */
+static int *option_var(int which, int *n, void (**changed)(void))
+{
+    *changed = NULL;
+    switch (which) {
+    case 0: *n = 2; *changed = refl_changed; return &s_refl;
 #ifdef NFSU2_VIDEO_ROWS
-/* The Mac Settings window (src/apple/apple_menu.m): the same value as the
- * Resolution Scale row, saved the same way. Percent, one of s_scale_pct. */
-int nfsu2_options_scale(void)
-{
-    return nv2a_vk_scale_pct ? nv2a_vk_scale_pct : s_scale_pct[s_scale_idx];
-}
-
-void nfsu2_options_set_scale(int pct)
-{
-    int i;
-
-    for (i = 0; i < N_SCALE; i++)
-        if (s_scale_pct[i] == pct) {
-            s_scale_idx = i;
-            scale_changed();
-            options_save();
-            options_log();
-        }
-}
+    case 1: *n = N_SCALE; *changed = scale_changed; return &s_scale_idx;
+    case 2: *n = 2; *changed = picture_changed; return &s_fxaa;
+    case 3: *n = 5; *changed = picture_changed; return &s_aniso_idx;
+    case 4: *n = 2; *changed = picture_changed; return &s_square;
 #endif
+    case 5: *n = 11; *changed = vib_changed; return &s_vib_idx;
+    default: *n = 0; return NULL;
+    }
+}
+
+int nfsu2_option_get(int which)
+{
+    int n;
+    void (*changed)(void);
+    int *v = option_var(which, &n, &changed);
+    return v ? *v : 0;
+}
+
+void nfsu2_option_set(int which, int choice)
+{
+    int n;
+    void (*changed)(void);
+    int *v = option_var(which, &n, &changed);
+    if (!v || choice < 0 || choice >= n)
+        return;
+    *v = choice;
+    if (changed)
+        changed();
+    options_save();
+    options_log();
+}
+
+/* Options -> Video's draw distance multiplier, now (the overlay; read at
+ * every draw-size test). */
+void nfsu2_set_draw_distance(float f);
 
 static OptRow *opt_row(uint32_t obj)
 {
