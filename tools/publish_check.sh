@@ -10,7 +10,7 @@ FILES="$(git ls-files --cached --others --exclude-standard)"
 while IFS= read -r f; do
   [ -n "$f" ] || continue
   case "$f" in
-    upstream/*|mirror/*|game/*|build/*|logs/*|.venv/*) bad "not ours to publish: $f" ;;
+    upstream/*|engine/gen/*|mirror/*|game/*|build/*|logs/*|.venv/*) bad "not ours to publish: $f" ;;
     *.iso|*.ISO|*.xbe|*.XBE|*.BIN|*.xmv|*.bundle|*.dmg) bad "a game or binary file: $f" ;;
     *recomp_[0-9][0-9][0-9][0-9].c|*recomp_dispatch.c|*recomp_stubs*.c) bad "generated code: $f" ;;
   esac

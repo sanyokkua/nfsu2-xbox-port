@@ -1,17 +1,16 @@
 #!/bin/bash
-# The players' DMG: "NFS Underground 2 Installer.app" with its kit (the lifter, upstream's runtime and our Apple host as compiled
+# The players' DMG: "NFS Underground 2 Installer.app" with its kit (the lifter, the engine's runtime and Apple host as compiled
 # objects, SDL for macOS 15+). No game code and no game data: the installer builds the game on the player's Mac from their own
 # disc. Checked by tests/dmg_no_game_code.sh before it is called done.
 #   tools/make_dmg.sh            -> build/dmg/NFS-Underground-2-<version>.dmg (+ .sha256)
-# Needs: tools/fetch.sh (upstream/), tools/build_deps.sh (build/deps), the release build (build/release, tools/build_release.sh).
+# Needs: tools/build_deps.sh (build/deps), the release build (build/release, tools/build_release.sh).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"; cd "$ROOT"
 export PATH="/opt/homebrew/bin:$PATH"
 VERSION="$(cat VERSION)"
 OUT=build/dmg; STAGE="$OUT/stage"; APP="$STAGE/NFS Underground 2 Installer.app"; KIT="$APP/Contents/Resources/kit"
 DMG="$OUT/NFS-Underground-2-$VERSION.dmg"
-[ -z "$(git -C upstream status --porcelain -- src xboxrecomp CMakeLists.txt tools config)" ] \
-  || { echo "upstream/ has changes not in patches/: commit them there and export"; exit 1; }
+[ -z "$(git status --porcelain -- engine)" ] || { echo "engine/ has uncommitted changes: commit them first"; exit 1; }
 [ -f build/deps/lib/libSDL3.0.dylib ] || { echo "run tools/build_deps.sh first"; exit 1; }
 cmake --build build/release >/dev/null
 
@@ -42,8 +41,7 @@ cp build/deps/lib/libSDL2-2.0.0.dylib build/deps/lib/libSDL3.0.dylib "$KIT/libs/
 cp -R LICENSES/. "$KIT/licenses/"
 cp -R build/deps/share/licenses/. "$KIT/licenses/"
 cp LICENSE NOTICE THIRD_PARTY_NOTICES.md "$KIT/"
-PIN="$(sed -n 's/^BASE=\([0-9a-f]*\).*/\1/p' tools/fetch.sh)"
-echo "nfsu2-ios by myUdav4iik (https://github.com/myUdav4iik/nfsu2-ios), commit $PIN, with this project's patches/ applied; its source: $(git remote get-url origin 2>/dev/null || echo 'this project')/tree/v$VERSION" > "$KIT/SOURCE.txt"
+echo "NFS Underground 2 for Mac $VERSION ($(git rev-parse --short HEAD)): the source of everything in this kit is https://github.com/sanyokkua/nfsu2-xbox-port/tree/v$VERSION (engine/ = nfsu2-ios 85d2cbf by myUdav4iik with NFSU2Deadware's patches and this project's changes)" > "$KIT/SOURCE.txt"
 codesign --force --sign - "$APP" >/dev/null 2>&1
 # the DMG's other files
 cp docs/dmg/read-me-first.txt "$STAGE/Read me first.txt"

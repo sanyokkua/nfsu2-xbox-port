@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
-"""The installer's build kit from build/release: our code and upstream's runtime, no game code.
+"""The installer's build kit from build/release: the engine's runtime and our host, no game code.
 
     python3 -I tools/kit.py <build dir> <kit dir>
 
-lift/     xboxrecomp's Python lifter (tools/ without outputs and tests, templates/), upstream's tools/regen.sh,
+lift/     xboxrecomp's Python lifter (tools/ without outputs and tests, templates/), the engine's tools/regen.sh,
           config/seed_functions.json and src/recomp_manual.c (regen reads it to skip the hand-written functions)
 py/       capstone (BSD) from .venv: the lifter runs on the Command Line Tools' /usr/bin/python3
-lib/      the runtime objects of nfsu2_recomp (upstream's src/, our Apple host) and the xboxrecomp static
+lib/      the runtime objects of nfsu2_recomp (engine/src: the game's overrides and the Apple host) and the xboxrecomp static
           libraries; link.txt = the build's link line without the lifted chunks (@KIT@ = the kit,
           @FW@ = the app's Frameworks); cflags.txt = the build's flags for the lifted chunks
 mac/build_game.sh lifts the player's default.xbe into gen/*.c, compiles it with clang and links (on their Mac).
@@ -21,7 +21,7 @@ import subprocess
 import sys
 
 ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), '..'))
-UP = os.path.join(ROOT, 'upstream')
+UP = os.path.join(ROOT, 'engine')
 build, kit = os.path.abspath(sys.argv[1]), os.path.abspath(sys.argv[2])
 shutil.rmtree(kit, ignore_errors=True)
 for d in ('lift', 'py', 'lib'):

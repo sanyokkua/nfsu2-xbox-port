@@ -4,7 +4,7 @@
 # and the last dump is not black.   tools/smoke.sh [seconds=75] [binary]
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SECS="${1:-75}"; BIN="${2:-$ROOT/build/metal/nfsu2_recomp}"
+SECS="${1:-75}"; BIN="${2:-$ROOT/build/release/nfsu2_recomp}"
 T="$(mktemp -d "${TMPDIR:-/tmp}/nfsu2-smoke.XXXXXX")"
 mkdir -p "$T/home" "$T/dump"; cp -c -R "$ROOT/game/extracted" "$T/game"
 ( cd "$T/home" && HOME="$T/home" NFSU2_GAME_DIR="$T/game" NFSU2_SMOKE_SECONDS="$SECS" \

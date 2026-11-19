@@ -1,0 +1,54 @@
+cmake_minimum_required(VERSION 3.20)
+project(nv2a_vk C)
+
+# Vulkan 1.3 renderer for the pushbuffer executor (XBOXRECOMP_VULKAN=ON):
+# the Switch's NVK from mesa-switch, linked statically (NVK_SDK), or any
+# Vulkan driver on Linux. Shares the shader generators with nv2a_gl, in
+# their Vulkan dialect, and compiles them with glslang at run time.
+add_library(xbox_nv2a_vk STATIC
+    nv2a_vk.c
+    ../nv2a_gl/gl_vsh.c
+    ../nv2a_gl/gl_psh.c
+)
+target_include_directories(xbox_nv2a_vk PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+
+find_package(glslang CONFIG REQUIRED)
+target_link_libraries(xbox_nv2a_vk PUBLIC glslang::glslang glslang::glslang-default-resource-limits)
+
+if(NINTENDO_SWITCH)
+    set(NVK_SDK "" CACHE PATH "mesa-switch install prefix (holds lib/libvulkan.a, include/vulkan)")
+    if(NOT EXISTS "${NVK_SDK}/lib/libvulkan.a")
+        message(FATAL_ERROR "NVK_SDK must point at a mesa-switch install (no lib/libvulkan.a in '${NVK_SDK}')")
+    endif()
+    target_include_directories(xbox_nv2a_vk PUBLIC "${NVK_SDK}/include")
+    target_sources(xbox_nv2a_vk PRIVATE switch_elf_stubs.c switch_egl_stubs.c)
+    # Static NVK and what it needs; listed twice for archive rescanning.
+    target_link_libraries(xbox_nv2a_vk PUBLIC
+        "${NVK_SDK}/lib/libvulkan.a" expat z nx
+        "${NVK_SDK}/lib/libvulkan.a" expat z nx stdc++ m)
+elseif(IOS)
+    # MoltenVK linked statically (no loader on iOS) and glslang without its
+    # optimizer, both from tools/build_ios_deps.sh (on CMAKE_PREFIX_PATH).
+    find_package(SDL2 REQUIRED)
+    find_library(MOLTENVK_LIB MoltenVK REQUIRED)
+    find_path(MOLTENVK_INCLUDE vulkan/vulkan.h REQUIRED)
+    target_include_directories(xbox_nv2a_vk PUBLIC "${MOLTENVK_INCLUDE}")
+    target_link_libraries(xbox_nv2a_vk PUBLIC "${MOLTENVK_LIB}" SDL2::SDL2 c++
+        "-framework Metal" "-framework QuartzCore" "-framework IOSurface"
+        "-framework UIKit" "-framework Foundation" "-framework CoreGraphics")
+else()
+    find_package(Vulkan REQUIRED)
+    find_package(PkgConfig REQUIRED)
+    pkg_check_modules(SDL2 REQUIRED IMPORTED_TARGET sdl2)
+    # The distribution glslang is built with its optimizer (static SPIRV-Tools).
+    target_link_libraries(xbox_nv2a_vk PUBLIC Vulkan::Vulkan PkgConfig::SDL2
+        SPIRV-Tools-opt SPIRV-Tools)
+    if(APPLE)
+        target_link_libraries(xbox_nv2a_vk PUBLIC c++)
+    else()
+        target_link_libraries(xbox_nv2a_vk PUBLIC stdc++)
+    endif()
+endif()
+if(NOT MSVC)
+    target_compile_options(xbox_nv2a_vk PRIVATE -Wall -Wextra -Wno-unused-parameter -Wno-missing-field-initializers -O2)
+endif()

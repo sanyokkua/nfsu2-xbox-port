@@ -2,7 +2,7 @@
 # Builds the game's binary on the player's Mac from their own disc (the installer carries no lifted or generated game code;
 # Apple's Command Line Tools only, no Homebrew):
 #   mac/build_game.sh <kit> <disc dir> <frameworks dir> <work dir> <out binary> [progress file]
-# kit (tools/kit.py): lift/ (xboxrecomp's Python lifter, upstream's regen.sh, seeds, recomp_manual.c), py/capstone,
+# kit (tools/kit.py): lift/ (xboxrecomp's Python lifter, the engine's regen.sh, seeds, recomp_manual.c), py/capstone,
 # lib/ (runtime objects, static libraries, link.txt, cflags.txt). frameworks: libSDL2-2.0.0.dylib + libSDL3.dylib.
 # Steps: lift default.xbe -> gen/*.c (CLT python3 + the kit's capstone); compile on the performance cores; link.
 # Progress lines "N text" (N = 5..95) go to the progress file. NFSU2_BUILD_JOBS=<n> sets the compile jobs.

@@ -1,7 +1,7 @@
 #!/bin/bash
 # The players' DMG holds no game code and no game data. Fails on:
 #   - the disc's files by name (*.xbe, *.BIN, *.xmv, NFSUNDER, B3) or *.iso
-#   - the lifted C or objects made from it (recomp_*.c but upstream's hand-written recomp_manual.c, recomp_*.o,
+#   - the lifted C or objects made from it (recomp_*.c but the engine's hand-written recomp_manual.c, recomp_*.o,
 #     recomp_dispatch*) or a game binary (nfsu2)
 #   - a file with more than 150 distinct lifted function names (sub_XXXXXXXX; a lifted chunk has ~250-400, recomp_manual.c 77): generated code under another name
 #   - any file with the SHA-1 of a file on the disc of 64 bytes or more (game/extracted, when it is there)

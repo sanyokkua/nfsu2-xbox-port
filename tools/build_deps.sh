@@ -47,6 +47,7 @@ echo "== SDL3 (macOS $TARGET)" >&2
 src="$(unpack SDL3)"; cmake_install SDL3 "$src"
 cp -L "$WORK/SDL3-install/lib/libSDL3.0.dylib" "$PREFIX/lib/libSDL3.0.dylib"
 install_name_tool -id @rpath/libSDL3.0.dylib "$PREFIX/lib/libSDL3.0.dylib"
+ln -sf libSDL3.0.dylib "$PREFIX/lib/libSDL3.dylib"   # the name sdl2-compat loads (@loader_path/libSDL3.dylib)
 mkdir -p "$PREFIX/share/licenses/SDL3" && cp "$src/LICENSE.txt" "$PREFIX/share/licenses/SDL3/"
 
 echo "== sdl2-compat (macOS $TARGET)" >&2
