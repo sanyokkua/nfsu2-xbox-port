@@ -1,0 +1,446 @@
+From 701cace5f0e339d1973c5fa7c678d4d8ab7df778 Mon Sep 17 00:00:00 2001
+From: Oleksandr Kostenko <sanyokkua@gmail.com>
+Date: Thu, 19 Nov 2026 10:48:10 +0100
+Subject: [PATCH] macOS: Settings window (Cmd+,) with the NFSU2 rows
+
+NFS Underground 2 > Settings... in the menu bar SDL makes (Quit is Cmd+Q
+there), the same window as the NFS Underground port's: Display and
+Resolution Scale (now; the scale is the game's Options > Video row) and
+Frame Rate 60/120/30, Gamma, Effects, Draw Distance, Motion Blur (next
+start). Kept in settings.ini in the working directory as environment
+defaults; set variables win. Replaces the separate launcher window.
+---
+ CMakeLists.txt         |   4 +-
+ src/apple/apple_main.c |  10 ++
+ src/apple/apple_menu.h |  21 +++
+ src/apple/apple_menu.m | 297 +++++++++++++++++++++++++++++++++++++++++
+ src/recomp_manual.c    |  22 +++
+ 5 files changed, 353 insertions(+), 1 deletion(-)
+ create mode 100644 src/apple/apple_menu.h
+ create mode 100644 src/apple/apple_menu.m
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index ff048d0..0e8b5ad 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -85,9 +85,11 @@ if(APPLE)
+     enable_language(OBJC)
+     target_sources(${PROJECT_NAME} PRIVATE src/apple/apple_main.c src/apple/apple_game_state.c src/apple/apple_perf.m
+                                            src/apple/apple_keyboard.c src/apple/apple_textures.m
+-                                           src/apple/apple_prompts.m src/apple/apple_window.m)
++                                           src/apple/apple_prompts.m src/apple/apple_window.m
++                                           src/apple/apple_menu.m)
+     target_compile_definitions(${PROJECT_NAME} PRIVATE NFSU2_APPLE_TEXTURES=1)
+     set_source_files_properties(src/apple/apple_textures.m src/apple/apple_prompts.m src/apple/apple_window.m
++                                src/apple/apple_menu.m
+                                 PROPERTIES COMPILE_OPTIONS "-fobjc-arc")
+     set_source_files_properties(src/apple/apple_perf.m PROPERTIES COMPILE_OPTIONS "-fobjc-arc"
+                                 INCLUDE_DIRECTORIES "${XBOXRECOMP_DIR}/src/apu")
+diff --git a/src/apple/apple_main.c b/src/apple/apple_main.c
+index a92de6c..bd1c8b6 100644
+--- a/src/apple/apple_main.c
++++ b/src/apple/apple_main.c
+@@ -29,6 +29,7 @@
+ #include <TargetConditionals.h>
+ #if !TARGET_OS_IPHONE
+ #include <SDL_syswm.h>
++#include "apple_menu.h"
+ void apple_window_full_panel(void *nswindow);   /* apple_window.m */
+ void apple_pads_background(void);              /* apple_window.m */
+ void apple_window_restore(void);
+@@ -85,6 +86,11 @@ void apple_keyboard_event(const SDL_Event *e);
+ void apple_perf_start(void);            /* apple_perf.m: [perf] lines */
+ 
+ static SDL_Window   *s_win;
++#if !TARGET_OS_IPHONE
++/* the Settings window (apple_menu.m) */
++void apple_set_fullscreen(int on) { set_full(s_win, on); }
++int apple_is_fullscreen(void) { return s_full; }
++#endif
+ #if !defined(NFSU2_VULKAN) && !defined(NFSU2_METAL)   /* OpenGL host (no GPU renderer of ours) */
+ static SDL_GLContext s_ctx;
+ #endif
+@@ -318,6 +324,9 @@ int main(int argc, char **argv)
+         fprintf(stderr, "[apple] SDL video: %s\n", SDL_GetError());
+         return 1;
+     }
++#if !TARGET_OS_IPHONE
++    apple_settings_load();                  /* settings.ini: env defaults */
++#endif
+ #if TARGET_OS_IPHONE
+     SDL_AddEventWatch(app_events, NULL);
+     if (getenv("NFSU2_GAME_DIR"))       /* the user's disc, picked in the app if missing */
+@@ -380,6 +389,7 @@ int main(int argc, char **argv)
+     }
+ #endif
+ #if !TARGET_OS_IPHONE
++    apple_menu_install(s_win);              /* NFS Underground 2 > Settings... */
+     {
+         const char *e = getenv("NFSU2_FULLSCREEN");
+         if (s_win && !(e && !strcmp(e, "0")))
+diff --git a/src/apple/apple_menu.h b/src/apple/apple_menu.h
+new file mode 100644
+index 0000000..ad79545
+--- /dev/null
++++ b/src/apple/apple_menu.h
+@@ -0,0 +1,21 @@
++/*
++ * apple_menu.h -- the macOS menu bar's Settings... item and its window
++ * (apple_menu.m). Mac only; both run on the main thread.
++ */
++#ifndef APPLE_MENU_H
++#define APPLE_MENU_H
++
++#include <SDL.h>
++
++/* settings.ini (the working directory) as environment defaults, before the
++ * window is made and the game starts. Variables already set win. */
++void apple_settings_load(void);
++
++/* NFS Underground 2 > Settings... (Cmd+,) in the menu bar SDL made. */
++void apple_menu_install(SDL_Window *win);
++
++/* apple_main.c: full screen on/off (its borderless full-panel window). */
++void apple_set_fullscreen(int on);
++int apple_is_fullscreen(void);
++
++#endif
+diff --git a/src/apple/apple_menu.m b/src/apple/apple_menu.m
+new file mode 100644
+index 0000000..080af75
+--- /dev/null
++++ b/src/apple/apple_menu.m
+@@ -0,0 +1,297 @@
++/*
++ * apple_menu.m -- Settings... (Cmd+,) in the app menu and its window.
++ *
++ * The same window as the NFS Underground port's (nfsu1-xbox-port), with the
++ * NFSU2 rows. SDL makes the menu bar (app menu with Quit, Cmd+Q); this adds
++ * Settings... to the app menu:
++ *
++ *   Display           Window / Full Screen       now, and at the next start
++ *   Resolution Scale  1x .. 4x                   now: the same value as the
++ *                     game's Options > Video > Resolution Scale row
++ *                     (recomp_manual.c, saved in nfsu2x_options.txt)
++ *   Frame Rate        60 / 120 / 30 fps           next start (NFSU2_FPS_CAP)
++ *   Gamma             Original / Modern / Warm    next start (NFSU2_GAMMA)
++ *   Effects           Bloom / Bloom + SSAO / Off  next start (NFSU2_BLOOM, NFSU2_AO)
++ *   Draw Distance     Normal / Far                next start (NFSU2_DRAW_DISTANCE)
++ *   Motion Blur       Off / On                    next start (NFSU2_BLUR_OFF)
++ *
++ * The rows other than Resolution Scale are kept in settings.ini in the
++ * working directory (the player folder) and become environment defaults at
++ * start (apple_settings_load); a variable set by hand still wins. F11 switches
++ * the window for this run only.
++ */
++#import <Cocoa/Cocoa.h>
++#include <stdio.h>
++#include <stdlib.h>
++#include <string.h>
++#include "apple_menu.h"
++
++#define SETTINGS_FILE "settings.ini"
++
++#if defined(NFSU2_METAL) || defined(NFSU2_VULKAN)
++int nfsu2_options_scale(void);              /* recomp_manual.c */
++void nfsu2_options_set_scale(int pct);
++#  define HAVE_SCALE 1
++#endif
++
++/* A row kept in settings.ini: key, choices shown, their values in the file. */
++typedef struct {
++    const char *key;
++    const char *title;
++    int n;
++    const char *labels[3];
++    const char *values[3];
++    int cur;                                /* index into values */
++} Setting;
++
++enum { S_FULLSCREEN, S_FPS, S_GAMMA, S_EFFECTS, S_DRAW, S_BLUR, N_SETTINGS };
++
++static Setting s_set[N_SETTINGS] = {
++    { "fullscreen", "Display:", 2, { "Window", "Full Screen" }, { "0", "1" }, 1 },
++    { "fps", "Frame Rate:", 3, { "60 fps", "120 fps", "30 fps (the original)" }, { "60", "120", "30" }, 0 },
++    { "gamma", "Gamma:", 3, { "Original", "Modern (brighter)", "Warm" }, { "original", "modern", "warm" }, 0 },
++    { "effects", "Effects:", 3, { "Bloom", "Bloom + Ambient Occlusion", "Off" }, { "bloom", "ssao", "off" }, 0 },
++    { "draw", "Draw Distance:", 2, { "Normal", "Far (x2)" }, { "1", "2" }, 0 },
++    { "blur", "Motion Blur:", 2, { "Off", "On" }, { "off", "on" }, 0 },
++};
++
++static SDL_Window *s_win;
++
++static void settings_save(void)
++{
++    FILE *f = fopen(SETTINGS_FILE, "w");
++    int i;
++
++    if (!f) {
++        fprintf(stderr, "[settings] cannot write " SETTINGS_FILE "\n");
++        return;
++    }
++    fprintf(f, "; NFS Underground 2: the Mac settings (NFS Underground 2 > Settings...)\n");
++    for (i = 0; i < N_SETTINGS; i++)
++        fprintf(f, "%s=%s\n", s_set[i].key, s_set[i].values[s_set[i].cur]);
++    fclose(f);
++}
++
++static const char *val(int i)
++{
++    return s_set[i].values[s_set[i].cur];
++}
++
++void apple_settings_load(void)
++{
++    char line[128];
++    FILE *f = fopen(SETTINGS_FILE, "r");
++    int i, j;
++
++    if (f) {
++        while (fgets(line, sizeof line, f)) {
++            char *eq = strchr(line, '=');
++            if (!eq || line[0] == ';')
++                continue;
++            *eq = 0;
++            eq[1 + strcspn(eq + 1, "\r\n")] = 0;
++            for (i = 0; i < N_SETTINGS; i++)
++                if (!strcmp(line, s_set[i].key))
++                    for (j = 0; j < s_set[i].n; j++)
++                        if (!strcmp(eq + 1, s_set[i].values[j]))
++                            s_set[i].cur = j;
++        }
++        fclose(f);
++    }
++    setenv("NFSU2_FULLSCREEN", val(S_FULLSCREEN), 0);
++    setenv("NFSU2_FPS_CAP", val(S_FPS), 0);
++    setenv("NFSU2_GAMMA", val(S_GAMMA), 0);
++    setenv("NFSU2_AO", strcmp(val(S_EFFECTS), "ssao") ? "0" : "1", 0);
++    setenv("NFSU2_BLOOM", strcmp(val(S_EFFECTS), "off") ? "0.35" : "0", 0);
++    setenv("NFSU2_DRAW_DISTANCE", val(S_DRAW), 0);
++    setenv("NFSU2_BLUR_OFF", strcmp(val(S_BLUR), "on") ? "1" : "0", 0);
++    fprintf(stderr, "[settings] display %s, fps %s, gamma %s, effects ao=%s bloom=%s, draw x%s, blur off=%s\n",
++            strcmp(getenv("NFSU2_FULLSCREEN"), "0") ? "full screen" : "window",
++            getenv("NFSU2_FPS_CAP"), getenv("NFSU2_GAMMA"), getenv("NFSU2_AO"), getenv("NFSU2_BLOOM"),
++            getenv("NFSU2_DRAW_DISTANCE"), getenv("NFSU2_BLUR_OFF"));
++}
++
++#ifdef HAVE_SCALE
++static const int k_scale_pct[] = { 100, 150, 200, 250, 400 };
++#define N_SCALE ((int)(sizeof k_scale_pct / sizeof k_scale_pct[0]))
++#endif
++
++@interface NFSSettings : NSObject <NSWindowDelegate>
++@property (strong) NSPanel *panel;
++@property (strong) NSMutableArray<NSPopUpButton *> *popups;   /* one per s_set row */
++@property (strong) NSPopUpButton *scale;
++@end
++
++@implementation NFSSettings
++
++static NSTextField *label(NSString *s)
++{
++    NSTextField *t = [NSTextField labelWithString:s];
++    t.alignment = NSTextAlignmentRight;
++    return t;
++}
++
++static NSTextField *note(NSString *s)
++{
++    NSTextField *t = [NSTextField wrappingLabelWithString:s];
++    t.font = [NSFont systemFontOfSize:NSFont.smallSystemFontSize];
++    t.textColor = NSColor.secondaryLabelColor;
++    return t;
++}
++
++- (NSPopUpButton *)popup:(NSArray<NSString *> *)items action:(SEL)action tag:(NSInteger)tag
++{
++    NSPopUpButton *p = [[NSPopUpButton alloc] initWithFrame:NSZeroRect pullsDown:NO];
++    [p addItemsWithTitles:items];
++    p.target = self;
++    p.action = action;
++    p.tag = tag;
++    return p;
++}
++
++- (void)addRow:(int)i to:(NSMutableArray *)rows
++{
++    NSMutableArray<NSString *> *items = [NSMutableArray array];
++    for (int j = 0; j < s_set[i].n; j++)
++        [items addObject:@(s_set[i].labels[j])];
++    NSPopUpButton *p = [self popup:items action:@selector(settingChanged:) tag:i];
++    self.popups[i] = p;
++    [rows addObject:@[ label(@(s_set[i].title)), p ]];
++}
++
++- (void)build
++{
++    NSMutableArray<NSArray<NSView *> *> *rows = [NSMutableArray array];
++
++    self.popups = [NSMutableArray arrayWithCapacity:N_SETTINGS];
++    for (int i = 0; i < N_SETTINGS; i++)
++        [self.popups addObject:(NSPopUpButton *)[NSNull null]];
++    [self addRow:S_FULLSCREEN to:rows];
++#ifdef HAVE_SCALE
++    self.scale = [self popup:@[ @"1x (640 × 480)", @"1.5x (960 × 720)", @"2x (1280 × 960)",
++                                @"2.5x (1600 × 1200)", @"4x (2560 × 1920)" ]
++                      action:@selector(scaleChanged:) tag:-1];
++    [rows addObject:@[ label(@"Resolution Scale:"), self.scale ]];
++    [rows addObject:@[ [NSGridCell emptyContentView],
++                       note(@"Also in the game: Options > Video > Resolution Scale.") ]];
++#endif
++    for (int i = S_FPS; i < N_SETTINGS; i++)
++        [self addRow:i to:rows];
++    [rows addObject:@[ [NSGridCell emptyContentView],
++                       note(@"Frame rate, gamma, effects, draw distance and motion blur change at the next start.") ]];
++
++    NSGridView *grid = [NSGridView gridViewWithViews:rows];
++    grid.rowSpacing = 10;
++    grid.columnSpacing = 8;
++    [grid columnAtIndex:0].xPlacement = NSGridCellPlacementTrailing;
++    for (NSInteger r = 0; r < grid.numberOfRows; r++)
++        [grid rowAtIndex:r].yPlacement = NSGridCellPlacementCenter;
++    grid.translatesAutoresizingMaskIntoConstraints = NO;
++
++    self.panel = [[NSPanel alloc] initWithContentRect:NSMakeRect(0, 0, 460, 320)
++                                            styleMask:NSWindowStyleMaskTitled | NSWindowStyleMaskClosable
++                                              backing:NSBackingStoreBuffered
++                                                defer:NO];
++    self.panel.title = @"Settings";
++    self.panel.releasedWhenClosed = NO;
++    self.panel.hidesOnDeactivate = NO;
++    self.panel.floatingPanel = YES;
++    /* over the game in its full-screen space too */
++    self.panel.collectionBehavior = NSWindowCollectionBehaviorFullScreenAuxiliary |
++                                    NSWindowCollectionBehaviorMoveToActiveSpace;
++    self.panel.level = NSStatusWindowLevel;   /* above the borderless full-panel game window */
++    self.panel.delegate = self;
++    [self.panel.contentView addSubview:grid];
++    [NSLayoutConstraint activateConstraints:@[
++        [grid.leadingAnchor constraintEqualToAnchor:self.panel.contentView.leadingAnchor constant:20],
++        [grid.trailingAnchor constraintEqualToAnchor:self.panel.contentView.trailingAnchor constant:-20],
++        [grid.topAnchor constraintEqualToAnchor:self.panel.contentView.topAnchor constant:20],
++        [grid.bottomAnchor constraintEqualToAnchor:self.panel.contentView.bottomAnchor constant:-20],
++    ]];
++}
++
++- (void)show:(id)sender
++{
++    if (!self.panel)
++        [self build];
++    s_set[S_FULLSCREEN].cur = apple_is_fullscreen() ? 1 : 0;
++    for (int i = 0; i < N_SETTINGS; i++)
++        [self.popups[i] selectItemAtIndex:s_set[i].cur];
++#ifdef HAVE_SCALE
++    for (int i = 0; i < N_SCALE; i++)
++        if (k_scale_pct[i] == nfsu2_options_scale())
++            [self.scale selectItemAtIndex:i];
++#endif
++    fprintf(stderr, "[settings] window shown\n");
++    [self.panel center];
++    [self.panel makeKeyAndOrderFront:nil];
++    [NSApp activateIgnoringOtherApps:YES];
++}
++
++- (void)settingChanged:(NSPopUpButton *)p
++{
++    int i = (int)p.tag;
++
++    s_set[i].cur = (int)p.indexOfSelectedItem;
++    settings_save();
++    fprintf(stderr, "[settings] %s=%s\n", s_set[i].key, val(i));
++    if (i == S_FULLSCREEN) {
++        apple_set_fullscreen(s_set[i].cur);
++        [self.panel makeKeyAndOrderFront:nil];
++    }
++}
++
++- (void)scaleChanged:(NSPopUpButton *)p
++{
++#ifdef HAVE_SCALE
++    nfsu2_options_set_scale(k_scale_pct[p.indexOfSelectedItem]);
++#endif
++}
++
++@end
++
++static NFSSettings *s_settings;
++
++void apple_menu_install(SDL_Window *win)
++{
++    NSMenu *app = NSApp.mainMenu.itemArray.firstObject.submenu;
++    NSMenuItem *item = nil;
++    NSInteger at = 0;
++
++    s_win = win;
++    if (!app) {
++        fprintf(stderr, "[settings] no app menu: Settings... not added\n");
++        return;
++    }
++    s_settings = [NFSSettings new];
++    /* SDL's menu already has a Settings... (Preferences...) item that does
++     * nothing; take it over rather than add a second one. */
++    for (NSMenuItem *m in app.itemArray)
++        if ([m.keyEquivalent isEqualToString:@","] || [m.title hasPrefix:@"Settings"] ||
++            [m.title hasPrefix:@"Preferences"]) {
++            item = m;
++            break;
++        }
++    if (!item) {
++        /* after "About ..." and its separator, where macOS apps keep it */
++        if (app.numberOfItems > 1 && [app itemAtIndex:1].isSeparatorItem)
++            at = 2;
++        item = [[NSMenuItem alloc] initWithTitle:@"Settings…" action:NULL keyEquivalent:@","];
++        [app insertItem:item atIndex:at];
++        [app insertItem:[NSMenuItem separatorItem] atIndex:at + 1];
++    }
++    item.title = @"Settings…";
++    item.keyEquivalent = @",";
++    item.keyEquivalentModifierMask = NSEventModifierFlagCommand;
++    item.action = @selector(show:);
++    item.target = s_settings;
++    item.enabled = YES;
++    {
++        NSMutableString *items = [NSMutableString string];
++        for (NSMenuItem *m in app.itemArray)
++            if (!m.isSeparatorItem)
++                [items appendFormat:@"%@%@%@", items.length ? @", " : @"", m.title,
++                                    m.keyEquivalent.length ? [@" ⌘" stringByAppendingString:m.keyEquivalent] : @""];
++        fprintf(stderr, "[settings] app menu: %s\n", items.UTF8String);
++    }
++}
+diff --git a/src/recomp_manual.c b/src/recomp_manual.c
+index 1f504ff..ede8860 100644
+--- a/src/recomp_manual.c
++++ b/src/recomp_manual.c
+@@ -2328,6 +2328,28 @@ static void options_save(void)
+     fclose(f);
+ }
+ 
++#ifdef NFSU2_VIDEO_ROWS
++/* The Mac Settings window (src/apple/apple_menu.m): the same value as the
++ * Resolution Scale row, saved the same way. Percent, one of s_scale_pct. */
++int nfsu2_options_scale(void)
++{
++    return nv2a_vk_scale_pct ? nv2a_vk_scale_pct : s_scale_pct[s_scale_idx];
++}
++
++void nfsu2_options_set_scale(int pct)
++{
++    int i;
++
++    for (i = 0; i < N_SCALE; i++)
++        if (s_scale_pct[i] == pct) {
++            s_scale_idx = i;
++            scale_changed();
++            options_save();
++            options_log();
++        }
++}
++#endif
++
+ static OptRow *opt_row(uint32_t obj)
+ {
+     int i;
+-- 
+2.56.1
+
