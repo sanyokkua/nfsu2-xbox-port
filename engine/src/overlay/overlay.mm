@@ -48,6 +48,8 @@ namespace
     std::vector<Opt> g_opts;
     std::vector<std::string> g_pages;
     std::mutex g_save_lock;
+    int g_changed_opt = -1;     // the option changed last, and when: its help line says so for a while
+    double g_changed_at;
 
     int Clamp(const OverlayOption *o, int c)
     {
@@ -92,6 +94,8 @@ namespace
             p.o->set(c);
         } else
             return;
+        g_changed_opt = (int)(&p - g_opts.data());
+        g_changed_at = CACurrentMediaTime();
         fprintf(stderr, "[overlay] %s %s\n", p.o->label, p.o->choices[c]);
     }
 
@@ -387,7 +391,7 @@ namespace
         // Rows
         std::vector<int> rows = PageRows(g_page);
         const float rh = 44 * s, top = ty + th + 14 * s;
-        const float footer_y = p1.y - 64 * s, help_h = 84 * s;
+        const float footer_y = p1.y - 64 * s, help_h = 104 * s;
         const bool advanced = g_pages[g_page] == "Advanced";
         const char *const *about = overlay_game_about();
         int about_lines = 0;
@@ -476,9 +480,18 @@ namespace
                 Text(dl, ImVec2(p0.x + pad, y), fs * 0.9f, kText, p.o->help, p1.x - p0.x - 2 * pad);
                 y += TextSize(fs * 0.9f, p.o->help, p1.x - p0.x - 2 * pad).y + 6 * s;
             }
-            if (p.o->restart)
-                Text(dl, ImVec2(p0.x + pad, y), fs * 0.85f, RestartPending(p) ? kAccent : kDim,
-                     RestartPending(p) ? "Restart the game to apply this change." : "Applies at the next start.");
+            const float wrap = p1.x - p0.x - 2 * pad;
+            if (p.o->where) {
+                std::string w = std::string("Where: ") + p.o->where;
+                Text(dl, ImVec2(p0.x + pad, y), fs * 0.85f, kDim, w.c_str(), wrap);
+                y += TextSize(fs * 0.85f, w.c_str(), wrap).y + 4 * s;
+            }
+            bool just = g_changed_opt == rows[g_row] && CACurrentMediaTime() - g_changed_at < 3.0;
+            if (RestartPending(p))
+                Text(dl, ImVec2(p0.x + pad, y), fs * 0.85f, kAccent, "Saved. Restart the game to apply this change.");
+            else if (just)
+                Text(dl, ImVec2(p0.x + pad, y), fs * 0.85f, kAccent,
+                     p.o->restart ? "Saved: back to the value this run started with." : "Applied and saved.");
         }
 
         // Footer

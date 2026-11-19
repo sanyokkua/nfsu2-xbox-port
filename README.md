@@ -49,7 +49,9 @@ You need an **Apple Silicon Mac with macOS 15 or newer** and your own disc image
 **The settings menu** opens over the game with **Back + Start** on a controller, **F1** (on a MacBook: **fn+F1**, unless the
 F-keys are set as standard keys) or **Cmd+,**. The D-pad or left stick chooses and changes, **A** toggles, **LB/RB** turn the
 pages, **B** closes; on a keyboard the arrows, Enter, Q/E (or Tab) and Esc; the mouse works too. While it is open the game gets no
-input. At the bottom: **Reset page**, **Close** and **Quit Game** (it asks first).
+input. Under the rows, the chosen setting says what it does, **where** you will see it (races and the city, the whole picture,
+menus...) and, once changed, whether it is applied now or after a restart. At the bottom: **Reset page**, **Close** and **Quit
+Game** (it asks first).
 
 | Page | Setting | Choices | Applies |
 |---|---|---|---|

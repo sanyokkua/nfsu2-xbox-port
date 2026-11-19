@@ -137,40 +137,55 @@ static void open_logs(void) { overlay_request(OVERLAY_REQ_OPEN_LOGS); }
 
 static const OverlayOption k_options[] = {
     { "Display", "Display", "Full screen over the whole panel, or a window. F11 switches it for this run.",
+      "The window: at once.",
       CHOICES(k_display), 1, 0, "fullscreen", k_01, apply_display },
     { "Display", "Resolution Scale", "How many pixels the game draws: more is sharper and costs the GPU. "
-      "Also in the game: Options > Video.", CHOICES(k_scale), 4, 0, NULL, NULL, NULL, get_scale, set_scale },
-    { "Display", "Frame Rate", "60 fps in races and the city; 120 fps on a 120 Hz display. The menus and "
-      "the camera sequences keep the game's own pace.", CHOICES(k_fps), 0, 1, "fps", k_fps_v, apply_fps },
+      "Also in the game: Options > Video.", "Everything the game draws, from the next frame. Movies keep their own 640 x 480.",
+      CHOICES(k_scale), 4, 0, NULL, NULL, NULL, get_scale, set_scale },
+    { "Display", "Frame Rate", "60 fps, or 120 fps on a 120 Hz display; 30 is the Xbox's own.", "Races and the city, from the next start. The menus already run at 60; race intros and shop scenes keep the game's pace.",
+      CHOICES(k_fps), 0, 1, "fps", k_fps_v, apply_fps },
 
     { "Graphics", "Anti-Aliasing", "FXAA over the finished picture: smoother edges.",
+      "The whole picture, menus too: at once.",
       CHOICES(k_onoff), 1, 0, NULL, NULL, NULL, get_fxaa, set_fxaa },
     { "Graphics", "Anisotropic Filtering", "Sharper road and walls at an angle.",
+      "Roads, walls and the ground seen at an angle, in races and the city: at once.",
       CHOICES(k_aniso), 4, 0, NULL, NULL, NULL, get_aniso, set_aniso },
     { "Graphics", "Square Pixels", "Widescreen drawn with square pixels (more columns) instead of the "
-      "Xbox's stretched 640 x 480.", CHOICES(k_onoff), 1, 0, NULL, NULL, NULL, get_square, set_square },
+      "Xbox's stretched 640 x 480.", "Races and the city (the widescreen 3D picture): from the next frame. The menus don't change.",
+      CHOICES(k_onoff), 1, 0, NULL, NULL, NULL, get_square, set_square },
     { "Graphics", "Car Reflections", "The cars' paint and glass reflect the city.",
+      "Car paint and glass in races, the city, the garage and the menus: at once.",
       CHOICES(k_onoff), 1, 0, NULL, NULL, NULL, get_refl, set_refl },
     { "Graphics", "Draw Distance", "How far scenery keeps its detail. Far costs GPU time late in races.",
+      "Distant buildings and objects in races and the city: at once.",
       CHOICES(k_draw), 0, 0, "draw", k_draw_v, apply_draw },
     { "Graphics", "Gamma", "The picture's brightness curve: the Xbox's, a brighter one for modern "
-      "displays, or a warmer one.", CHOICES(k_gamma), 0, 0, "gamma", k_gamma_v, apply_gamma },
+      "displays, or a warmer one.", "The whole picture, menus and movies too: at once.",
+      CHOICES(k_gamma), 0, 0, "gamma", k_gamma_v, apply_gamma },
     { "Graphics", "Effects", "Bloom on bright lights; ambient occlusion darkens corners and contacts "
-      "(costs GPU time at high scales).", CHOICES(k_fx), 0, 0, "effects", k_fx_v, apply_fx },
+      "(costs GPU time at high scales).", "3D scenes (races, the city, the garage): at once. Not the 2D menus or movies.",
+      CHOICES(k_fx), 0, 0, "effects", k_fx_v, apply_fx },
     { "Graphics", "Motion Blur", "The game's own blur at speed.",
+      "Races and the city, at speed: at once.",
       CHOICES(k_onoff), 0, 0, "blur", k_blur_v, apply_blur },
 
     { "Audio", "Master Volume", "The whole game's sound, before the Mac's volume. The game's own "
-      "sliders are in Options > Audio.", CHOICES(k_pct), 5, 0, "volume", k_pct_v, apply_volume },
+      "sliders are in Options > Audio.", "All the game's sound (music, speech, engines, effects): at once.",
+      CHOICES(k_pct), 5, 0, "volume", k_pct_v, apply_volume },
 
     { "Input", "Vibration", "Controller rumble strength. Also in the game: Options > Gameplay.",
+      "The controller's rumble in races and the city: at once.",
       CHOICES(k_vib), 10, 0, NULL, NULL, NULL, get_vib, set_vib },
     { "Input", "Keyboard as Controller", "Arrows/WASD drive, Enter is A and Start, Esc is B, P is Start.",
+      "The keyboard in the game (not in this menu): from the next start.",
       CHOICES(k_kbd), 0, 1, "keyboard", k_kbd_v, apply_kbd },
 
     { "Advanced", "Performance Overlay", "Frames per second and the slowest frame, top left "
-      "(also Cmd+Option+F).", CHOICES(k_onoff), 0, 0, "fps_counter", k_01, apply_fps_counter },
+      "(also Cmd+Option+F).", "Top left of the screen: at once.",
+      CHOICES(k_onoff), 0, 0, "fps_counter", k_01, apply_fps_counter },
     { "Advanced", "Logs", "The game's and the installer's logs, in Finder (for a bug report).",
+      "Opens a Finder window.",
       NULL, 0, 0, 0, NULL, NULL, NULL, NULL, NULL, open_logs, "Open" },
 };
 

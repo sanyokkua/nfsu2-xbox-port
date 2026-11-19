@@ -11,6 +11,8 @@
  *   - kept by the game itself (`key` NULL): `get` reads the current choice,
  *     `set` changes and saves it (the game's own options file).
  *
+ * `where` says where the player will see the change (races, menus, the whole
+ * picture...); the help area shows it with `help` and when it applies.
  * `restart` 1: the game reads it only at start; the menu shows "restart"
  * while the chosen value differs from the one this run started with.
  * An action row (`action` set, no choices) runs `action` on A / Enter / click.
@@ -28,6 +30,7 @@ typedef struct OverlayOption {
     const char *page;               /* "Display", "Graphics", "Audio", "Input", "Advanced" */
     const char *label;
     const char *help;               /* the line under the rows when it is chosen */
+    const char *where;              /* where the change shows: "Races and the city", ... */
     const char *const *choices;     /* labels shown, n of them */
     int n;
     int def;                        /* default choice */
