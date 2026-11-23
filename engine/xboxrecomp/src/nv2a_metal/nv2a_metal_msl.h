@@ -38,6 +38,8 @@ typedef struct {
     int32_t afunc;              /* alpha test, GL compare enum (0x207 always) */
     float   aref;               /* 0..255 */
     float   pad[2];
+    float   bc[4][4];           /* hpcos-xbox-port: SET_TEXTURE_BORDER_COLOR per stage (r g b a) */
+    int32_t bm[4];              /* border addressing per stage: bit 0 s, bit 1 t (mode 4) */
 } Nv2aMslFs;
 
 /* Vertex shader for a vertex program (prog != NULL: slots from `start` to

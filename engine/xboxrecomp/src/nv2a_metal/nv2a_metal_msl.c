@@ -287,7 +287,20 @@ int nv2a_msl_fragment(const Nv2aPshKey *k, char *buf, size_t cap)
         "    float4 u_fc0; float4 u_fc1;\n"
         "    float4 u_fogcolor;\n"
         "    int u_alpha_func; float u_alpha_ref;\n"
+        "    float2 u_pad_; float4 u_bc[4]; int4 u_bm;\n"
         "};\n"
+        /* Border addressing (mode 4) with the stage's own colour: Metal's samplers only have
+         * black or white borders. CoS clears its character shadow map to grey and gives it a
+         * 0x808080 border; a white border lit everything outside the map twice as bright, and
+         * the map's edges showed as dark bands sliding over walls and floors with the camera. */
+        "static float4 nv2a_samp(texture2d<float> t, sampler s, float2 uv, float4 bc, int bm) {\n"
+        "    if (((bm & 1) && (uv.x < 0.0 || uv.x > 1.0)) || ((bm & 2) && (uv.y < 0.0 || uv.y > 1.0)))\n"
+        "        return bc;\n"
+        "    return t.sample(s, uv);\n"
+        "}\n"
+        "static float4 nv2a_samp(texturecube<float> t, sampler s, float3 uv, float4 bc, int bm) {\n"
+        "    return t.sample(s, uv);\n"
+        "}\n"
         "struct FIn {\n"
         "    float4 pos [[position]];\n"
         "    float4 vD0; float4 vD1;\n"
@@ -313,7 +326,9 @@ int nv2a_msl_fragment(const Nv2aPshKey *k, char *buf, size_t cap)
         "    float vFog = in.vFog;\n"
         "    float4 fragColor;\n"
         /* After the parameters: [[texture(n)]] would expand too. */
-        "#define texture(t, uv) t##_tex.sample(t##_smp, uv)\n"
+        "    float4 t0_bc = F.u_bc[0], t1_bc = F.u_bc[1], t2_bc = F.u_bc[2], t3_bc = F.u_bc[3];\n"
+        "    int t0_bm = F.u_bm.x, t1_bm = F.u_bm.y, t2_bm = F.u_bm.z, t3_bm = F.u_bm.w;\n"
+        "#define texture(t, uv) nv2a_samp(t##_tex, t##_smp, uv, t##_bc, t##_bm)\n"
         "#define discard discard_fragment()\n");
     if (o.overflow || o.left <= len)
         return -1;

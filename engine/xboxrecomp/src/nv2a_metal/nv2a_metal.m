@@ -1503,7 +1503,7 @@ static MTLSamplerAddressMode wrap_mode(uint32_t m)
     switch (m) {
     case 2:  return MTLSamplerAddressModeMirrorRepeat;
     case 3:  return MTLSamplerAddressModeClampToEdge;
-    case 4:  return MTLSamplerAddressModeClampToZero;      /* border: transparent black */
+    case 4:  return MTLSamplerAddressModeClampToEdge;      /* border: the shader returns the stage's colour */
     case 5:  return MTLSamplerAddressModeClampToEdge;
     default: return MTLSamplerAddressModeRepeat;
     }
@@ -3327,6 +3327,25 @@ static void mtl_draw_raw_inner(const Nv2aRawBatch *b)
         for (i = 0; i < 4; i++) {
             fb.tscale[i][0] = tscale[i][0];
             fb.tscale[i][1] = tscale[i][1];
+            {   /* border addressing in the shader, with the stage's colour (hpcos-xbox-port) */
+                uint32_t base = (0x1B00u + (uint32_t)i * 0x40u) / 4, a = r[base + 2];
+                fb.bm[i] = ((a & 0xF) == 4 ? 1 : 0) | (((a >> 8) & 0xF) == 4 ? 2 : 0);
+                if (fb.bm[i]) {
+                    uint32_t bc = r[base + 9];
+                    fb.bc[i][0] = byte_f(bc, 16); fb.bc[i][1] = byte_f(bc, 8);
+                    fb.bc[i][2] = byte_f(bc, 0);  fb.bc[i][3] = byte_f(bc, 24);
+                    if (r[base + 3] & 0x40000000u) {   /* once per distinct stage/colour: does the title use it? */
+                        static uint32_t seen[16];
+                        static int nseen;
+                        int j;
+                        for (j = 0; j < nseen && seen[j] != (bc ^ (uint32_t)i << 30 ^ (uint32_t)fb.bm[i] << 28); j++) {}
+                        if (j == nseen && nseen < 16) {
+                            seen[nseen++] = bc ^ (uint32_t)i << 30 ^ (uint32_t)fb.bm[i] << 28;
+                            fprintf(stderr, "[metal] border addressing: stage %d s/t %d colour %08X\n", i, fb.bm[i], bc);
+                        }
+                    }
+                }
+            }
         }
         for (i = 0; i < 8; i++) {
             argb_vec4(r[0xA60 / 4 + i], fb.c0[i]);
