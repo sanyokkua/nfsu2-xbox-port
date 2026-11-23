@@ -34,6 +34,24 @@ class FpuLifterTest(unittest.TestCase):
             ["MEMF(esp + 0x18) = (float)fp_top(); fp_pop(); /* fstp */"],
         )
 
+    def test_tbyte_load_and_store_use_80_bit_conversion(self):
+        # fld/fstp m80: the load was lifted as a 4-byte float (the CRT's asin/acos
+        # got ~0 for pi/2) and the store fell into the st(i) path.
+        operand = Operand(type="mem", mem_disp=0x0021336E, mem_size=10)
+        load = Instruction(0, 6, "fld", "xword ptr [0x21336e]", "")
+        load.operands = [operand]
+        store = Instruction(0, 6, "fstp", "xword ptr [0x21336e]", "")
+        store.operands = [operand]
+
+        self.assertEqual(
+            Lifter().lift_instruction(load),
+            ["fp_push(recomp_ld_f80(0x21336E)); /* fld tbyte */"],
+        )
+        self.assertEqual(
+            Lifter().lift_instruction(store),
+            ["recomp_st_f80(0x21336E, fp_top()); fp_pop(); /* fstp tbyte */"],
+        )
+
     def test_qword_integer_conversion_uses_signed_64_bit_storage(self):
         operand = Operand(type="mem", mem_base="esp", mem_disp=0x10,
                           mem_size=8)
