@@ -56,9 +56,9 @@ static const struct {
     { SDL_SCANCODE_BACKSPACE, BTN,      SDL_CONTROLLER_BUTTON_B },
     { SDL_SCANCODE_SPACE,     BTN,      SDL_CONTROLLER_BUTTON_X },
     { SDL_SCANCODE_LSHIFT,    BTN,      SDL_CONTROLLER_BUTTON_Y },
-    /* xinput_device.c: right shoulder = White, left shoulder = Black */
-    { SDL_SCANCODE_Q,         BTN,      SDL_CONTROLLER_BUTTON_RIGHTSHOULDER },
-    { SDL_SCANCODE_E,         BTN,      SDL_CONTROLLER_BUTTON_LEFTSHOULDER },
+    /* xinput_device.c: left shoulder = White, right shoulder = Black */
+    { SDL_SCANCODE_Q,         BTN,      SDL_CONTROLLER_BUTTON_LEFTSHOULDER },
+    { SDL_SCANCODE_E,         BTN,      SDL_CONTROLLER_BUTTON_RIGHTSHOULDER },
     { SDL_SCANCODE_TAB,       BTN,      SDL_CONTROLLER_BUTTON_BACK },
     { SDL_SCANCODE_P,         BTN,      SDL_CONTROLLER_BUTTON_START },
     { SDL_SCANCODE_I,         AXIS_NEG, SDL_CONTROLLER_AXIS_RIGHTY },

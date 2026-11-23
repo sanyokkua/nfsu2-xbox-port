@@ -166,9 +166,9 @@ DWORD xbox_InputGetState(DWORD dwPort, XBOX_INPUT_STATE *pState)
         (xi_state.Gamepad.wButtons & XINPUT_GAMEPAD_X) ? 255 : 0;
     pState->Gamepad.bAnalogButtons[XBOX_BUTTON_Y] =
         (xi_state.Gamepad.wButtons & XINPUT_GAMEPAD_Y) ? 255 : 0;
-    pState->Gamepad.bAnalogButtons[XBOX_BUTTON_BLACK] =
-        (xi_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) ? 255 : 0;
     pState->Gamepad.bAnalogButtons[XBOX_BUTTON_WHITE] =
+        (xi_state.Gamepad.wButtons & XINPUT_GAMEPAD_LEFT_SHOULDER) ? 255 : 0;
+    pState->Gamepad.bAnalogButtons[XBOX_BUTTON_BLACK] =
         (xi_state.Gamepad.wButtons & XINPUT_GAMEPAD_RIGHT_SHOULDER) ? 255 : 0;
     pState->Gamepad.bAnalogButtons[XBOX_BUTTON_LTRIGGER] = xi_state.Gamepad.bLeftTrigger;
     pState->Gamepad.bAnalogButtons[XBOX_BUTTON_RTRIGGER] = xi_state.Gamepad.bRightTrigger;
@@ -276,11 +276,49 @@ static void open_controllers(void)
  * port reads a connected, neutral pad. */
 volatile int xbox_input_blocked;
 
+/* Presses since the last read, per port (bit = SDL button; 30, 31 = the left,
+ * right trigger past a third): a tap that begins and ends between two reads
+ * of the title (a slow frame, a load) is still seen once, as pressed. Kept
+ * from the controller events, which SDL sends from whichever thread updates
+ * the pads. RECOMP_PAD_LATCH=0 off. */
+static volatile uint32_t g_latch[XBOX_MAX_CONTROLLERS];
+static int latch_port(SDL_JoystickID id)
+{
+    for (int i = 0; i < XBOX_MAX_CONTROLLERS; i++)
+        if (g_pads[i] && SDL_JoystickInstanceID(SDL_GameControllerGetJoystick(g_pads[i])) == id)
+            return i;
+    return -1;
+}
+static int SDLCALL latch_watch(void *ud, SDL_Event *e)
+{
+    int p;
+    (void)ud;
+    if (e->type == SDL_CONTROLLERBUTTONDOWN) {
+        if ((p = latch_port(e->cbutton.which)) >= 0 && e->cbutton.button < 30)
+            __atomic_fetch_or(&g_latch[p], 1u << e->cbutton.button, __ATOMIC_RELAXED);
+    } else if (e->type == SDL_CONTROLLERAXISMOTION && e->caxis.value > 10922
+               && (e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT
+                   || e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERRIGHT)) {
+        if ((p = latch_port(e->caxis.which)) >= 0)
+            __atomic_fetch_or(&g_latch[p],
+                              e->caxis.axis == SDL_CONTROLLER_AXIS_TRIGGERLEFT ? 1u << 30 : 1u << 31,
+                              __ATOMIC_RELAXED);
+    }
+    return 1;
+}
+
 void xbox_InputInit(void)
 {
+    static int watched;
     if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER))
         SDL_InitSubSystem(SDL_INIT_GAMECONTROLLER);
     open_controllers();
+    if (!watched) {
+        const char *e = getenv("RECOMP_PAD_LATCH");
+        watched = 1;
+        if (!(e && *e == '0'))
+            SDL_AddEventWatch(latch_watch, NULL);
+    }
 }
 
 #if defined(__SWITCH__)
@@ -368,9 +406,12 @@ DWORD xbox_InputGetState(DWORD dwPort, XBOX_INPUT_STATE *pState)
         SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_X) ? 255 : 0;
     pState->Gamepad.bAnalogButtons[XBOX_BUTTON_Y] =
         SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_Y) ? 255 : 0;
-    pState->Gamepad.bAnalogButtons[XBOX_BUTTON_BLACK] =
-        SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_LEFTSHOULDER) ? 255 : 0;
+    /* A 360/One pad's bumpers stand in for White and Black. On the Controller S
+     * White is the left of the pair and Black the right: LB is White, RB is Black
+     * (xemu's default and HP-COS-Xbox-Recomp's; this had them the other way). */
     pState->Gamepad.bAnalogButtons[XBOX_BUTTON_WHITE] =
+        SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_LEFTSHOULDER) ? 255 : 0;
+    pState->Gamepad.bAnalogButtons[XBOX_BUTTON_BLACK] =
         SDL_GameControllerGetButton(c, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) ? 255 : 0;
 
     /* SDL trigger axes are 0..32767 -> Xbox analog button 0..255 */
@@ -387,6 +428,49 @@ DWORD xbox_InputGetState(DWORD dwPort, XBOX_INPUT_STATE *pState)
     pState->Gamepad.sThumbRX = SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_RIGHTX);
     pState->Gamepad.sThumbRY =
         (SHORT)(-1 - SDL_GameControllerGetAxis(c, SDL_CONTROLLER_AXIS_RIGHTY));
+    {   /* presses since the last read (latch_watch) */
+        uint32_t l = __atomic_exchange_n(&g_latch[dwPort], 0u, __ATOMIC_RELAXED);
+        /* ...and each press stays down for at least RECOMP_PAD_MIN_READS reads (default 2,
+         * ~33 ms at the game's 60 reads/s): a tap that reached one read only could fall
+         * between two passes of a check that runs every other frame. */
+        {
+            static int min_reads = -1;
+            static uint32_t hold[XBOX_MAX_CONTROLLERS][4];
+            uint32_t now = l;
+            if (min_reads < 0) {
+                const char *e = getenv("RECOMP_PAD_MIN_READS");
+                min_reads = e ? atoi(e) : 2;
+                if (min_reads < 1) min_reads = 1;
+                if (min_reads > 5) min_reads = 5;
+            }
+            for (int k = 0; k < min_reads - 1; k++) l |= hold[dwPort][k];
+            for (int k = min_reads - 2; k > 0; k--) hold[dwPort][k] = hold[dwPort][k - 1];
+            if (min_reads > 1) hold[dwPort][0] = now;
+        }
+        static const struct { int sdl; WORD dig; int ana; } m[] = {
+            { SDL_CONTROLLER_BUTTON_A, 0, XBOX_BUTTON_A }, { SDL_CONTROLLER_BUTTON_B, 0, XBOX_BUTTON_B },
+            { SDL_CONTROLLER_BUTTON_X, 0, XBOX_BUTTON_X }, { SDL_CONTROLLER_BUTTON_Y, 0, XBOX_BUTTON_Y },
+            { SDL_CONTROLLER_BUTTON_LEFTSHOULDER, 0, XBOX_BUTTON_WHITE },
+            { SDL_CONTROLLER_BUTTON_RIGHTSHOULDER, 0, XBOX_BUTTON_BLACK },
+            { SDL_CONTROLLER_BUTTON_DPAD_UP, XBOX_GAMEPAD_DPAD_UP, -1 },
+            { SDL_CONTROLLER_BUTTON_DPAD_DOWN, XBOX_GAMEPAD_DPAD_DOWN, -1 },
+            { SDL_CONTROLLER_BUTTON_DPAD_LEFT, XBOX_GAMEPAD_DPAD_LEFT, -1 },
+            { SDL_CONTROLLER_BUTTON_DPAD_RIGHT, XBOX_GAMEPAD_DPAD_RIGHT, -1 },
+            { SDL_CONTROLLER_BUTTON_START, XBOX_GAMEPAD_START, -1 },
+            { SDL_CONTROLLER_BUTTON_BACK, XBOX_GAMEPAD_BACK, -1 },
+            { SDL_CONTROLLER_BUTTON_LEFTSTICK, XBOX_GAMEPAD_LEFT_THUMB, -1 },
+            { SDL_CONTROLLER_BUTTON_RIGHTSTICK, XBOX_GAMEPAD_RIGHT_THUMB, -1 },
+        };
+        for (unsigned k = 0; l && k < sizeof m / sizeof m[0]; k++)
+            if (l & (1u << m[k].sdl)) {
+                if (m[k].ana >= 0) pState->Gamepad.bAnalogButtons[m[k].ana] = 255;
+                else pState->Gamepad.wButtons |= m[k].dig;
+            }
+        if ((l & (1u << 30)) && pState->Gamepad.bAnalogButtons[XBOX_BUTTON_LTRIGGER] < 128)
+            pState->Gamepad.bAnalogButtons[XBOX_BUTTON_LTRIGGER] = 255;
+        if ((l & (1u << 31)) && pState->Gamepad.bAnalogButtons[XBOX_BUTTON_RTRIGGER] < 128)
+            pState->Gamepad.bAnalogButtons[XBOX_BUTTON_RTRIGGER] = 255;
+    }
     if (xbox_input_blocked)                  /* the overlay menu has the controllers */
         memset(&pState->Gamepad, 0, sizeof pState->Gamepad);
 
