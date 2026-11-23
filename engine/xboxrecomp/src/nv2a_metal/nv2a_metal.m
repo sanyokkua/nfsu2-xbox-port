@@ -3349,6 +3349,27 @@ static void mtl_draw_raw_inner(const Nv2aRawBatch *b)
             s_vs_valid = 1;
         }
 
+        {   /* Logged once: does the title use W-buffer depth (CONTROL0 bit 16, Z_PERSPECTIVE)
+             * or the fixed-function fog unit (each distinct mode/params)? Neither is emulated here (the CoS
+             * port has both: with linear fog and params 1, 1 the factor is the coordinate, as here). */
+            static int said_w, said_fog;
+            if (!said_w && (r[0x290 / 4] & 0x10000u)) {
+                said_w = 1;
+                fprintf(stderr, "[metal] W-buffer depth in use (CONTROL0 %08X): depth is stored as z/w\n", r[0x290 / 4]);
+            }
+            static uint32_t fog_seen[8][3];
+            int j;
+            for (j = 0; j < said_fog && r[0x2A4 / 4]
+                        && memcmp(fog_seen[j], (uint32_t[3]){ r[0x29C / 4], r[0x9C0 / 4], r[0x9C4 / 4] }, 12); j++) {}
+            if (r[0x2A4 / 4] && j == said_fog && said_fog < 8) {   /* each distinct fog state, 8 at most */
+                float fp[2];
+                fog_seen[said_fog][0] = r[0x29C / 4]; fog_seen[said_fog][1] = r[0x9C0 / 4]; fog_seen[said_fog][2] = r[0x9C4 / 4];
+                said_fog++;
+                memcpy(fp, &r[0x9C0 / 4], sizeof fp);
+                fprintf(stderr, "[metal] fog unit enabled (mode %X gen %X params %g %g): not emulated\n",
+                        r[0x29C / 4], r[0x2A0 / 4], fp[0], fp[1]);
+            }
+        }
         memset(&fb, 0, sizeof fb);
         for (i = 0; i < 4; i++) {
             fb.tscale[i][0] = tscale[i][0];
