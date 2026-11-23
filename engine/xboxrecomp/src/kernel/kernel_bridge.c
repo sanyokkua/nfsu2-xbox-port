@@ -703,6 +703,32 @@ static void gil_lock(void)
     LeaveCriticalSection(&s_gil_cs);
 }
 
+/* hpcos-xbox-port: the wake hand-off. On the Xbox a thread that an event set
+ * releases, at a priority at or above the setter's, runs at once: the setter is
+ * pre-empted inside KeSetEvent. Here the woken host thread first has to get out
+ * of its wait and ask for the guest lock, and the setter, back from the kernel
+ * call first, used to win it. Chamber of Secrets' file-cache worker pops one
+ * request per wake: the main thread queued two requests and set the auto-reset
+ * event twice before the worker ran, the two wakes merged into one, and the
+ * second request was never served (a hang at a loading screen, ~1 boot in 8).
+ * So a set that releases a waiter waits (2 ms at most) until that thread has
+ * left its wait and taken a ticket for the lock, which then comes round to it
+ * before the setter. RECOMP_WAKE_HANDOFF=0 turns it off. */
+extern int w32_event_waiters(HANDLE h);
+static void gil_wake_handoff(HANDLE ev, int waiters, uint64_t tickets_before)
+{
+    static int on = -1;
+    ULONGLONG until;
+    if (on < 0) { const char *e = getenv("RECOMP_WAKE_HANDOFF"); on = !(e && *e == '0'); }
+    if (!on || waiters <= 0 || !gil_enabled())
+        return;
+    until = GetTickCount64() + 2;
+    while (w32_event_waiters(ev) >= waiters && GetTickCount64() <= until)
+        SwitchToThread();
+    while (s_gil_next == tickets_before && GetTickCount64() <= until)
+        SwitchToThread();
+}
+
 static void gil_unlock(void)
 {
     EnterCriticalSection(&s_gil_cs);
@@ -2197,7 +2223,16 @@ static void bridge_NtSetEvent(void)
 {
     HANDLE   handle = bridge_resolve_handle(STACK_ARG(0));
     uint32_t prev   = STACK_ARG(1);
+    int      waiters = w32_event_waiters(handle);
+    uint64_t tickets = s_gil_next;
     g_eax = (uint32_t)xbox_NtSetEvent(handle, XBOX_TO_NATIVE(prev));
+    gil_wake_handoff(handle, waiters, tickets);
+    {   /* hpcos-xbox-port: RECOMP_EVT_TRACE=1 logs event sets and waits (lost wake-ups) */
+        static int on = -1;
+        if (on < 0) { const char *e = getenv("RECOMP_EVT_TRACE"); on = e && *e == '1'; }
+        if (on) fprintf(stderr, "[evt] t%lu set %08X -> %08X from %08X\n", GetCurrentThreadId(), STACK_ARG(0), g_eax,
+                        g_ebp ? BRIDGE_MEM32(g_ebp + 4) : 0);
+    }
 }
 
 /* ── NtPulseEvent (ordinal 205) ──────────────────────────── */

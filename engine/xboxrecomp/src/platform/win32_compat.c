@@ -292,6 +292,7 @@ typedef struct w32_object {
     /* event */
     int             signaled;
     int             manual_reset;
+    int             waiters;        /* hpcos-xbox-port: threads blocked in wait_single */
 
     /* semaphore */
     long            sem_count;
@@ -593,6 +594,7 @@ static DWORD wait_single(w32_object *o, DWORD ms)
 
     pthread_mutex_lock(&o->lock);
     DWORD result = WAIT_OBJECT_0;
+    int counted = 0;
 
     for (;;) {
         int ready = 0;
@@ -607,6 +609,7 @@ static DWORD wait_single(w32_object *o, DWORD ms)
         default:       ready = 1; break;
         }
         if (ready) break;
+        if (!counted) { counted = 1; o->waiters++; }
 
         /* An armed timer has its own deadline. Waiting on the caller's alone
          * would sleep straight past the due time, so take whichever comes
@@ -636,8 +639,21 @@ static DWORD wait_single(w32_object *o, DWORD ms)
         default: break;
         }
     }
+    if (counted) o->waiters--;
     pthread_mutex_unlock(&o->lock);
     return result;
+}
+
+/* hpcos-xbox-port: threads blocked on an event right now (NtSetEvent's hand-off). */
+int w32_event_waiters(HANDLE h)
+{
+    w32_object *o = obj_from(h);
+    int n;
+    if (!o || o->kind != K_EVENT) return 0;
+    pthread_mutex_lock(&o->lock);
+    n = o->waiters;
+    pthread_mutex_unlock(&o->lock);
+    return n;
 }
 
 DWORD WaitForSingleObject(HANDLE h, DWORD ms)
