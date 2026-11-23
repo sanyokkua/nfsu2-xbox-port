@@ -386,3 +386,28 @@ int nv2a_gl_psh_no_alpha_test(const Nv2aPshKey *k, char *buf, size_t cap)
 {
     return psh_emit(k, buf, cap, 0);
 }
+
+/* hpcos-xbox-port: does the program read texture register t (0..3)? A combiner
+ * input or final-combiner input naming it (register 8 + t), or a texture stage
+ * after it whose shader mode depends on an earlier stage (dot products, bump
+ * maps: conservatively every mode past 5). Used to skip copying a render
+ * target that a draw leaves bound on a stage it never reads. */
+int nv2a_psh_reads_tex(const Nv2aPshKey *k, int t)
+{
+    uint32_t n = k->control & 0xF, i, j, reg = 8u + (uint32_t)t;
+    if (n > 8) n = 8;
+    for (i = 0; i < n; i++)
+        for (j = 0; j < 4; j++)
+            if (((k->color_icw[i] >> (8 * j)) & 0xF) == reg || ((k->alpha_icw[i] >> (8 * j)) & 0xF) == reg)
+                return 1;
+    for (j = 0; j < 4; j++)
+        if (((k->final0 >> (8 * j)) & 0xF) == reg)
+            return 1;
+    for (j = 1; j < 4; j++)                     /* CW1: E, F, G in bytes 3, 2, 1 */
+        if (((k->final1 >> (8 * j)) & 0xF) == reg)
+            return 1;
+    for (i = (uint32_t)t + 1; i < 4; i++)
+        if (((k->shader_program >> (5 * i)) & 0x1F) > 5)
+            return 1;
+    return 0;
+}

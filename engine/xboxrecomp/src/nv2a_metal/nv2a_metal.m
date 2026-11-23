@@ -425,9 +425,25 @@ static void end_blit(void)
 }
 
 static uint32_t s_st_split;     /* RECOMP_DRAW_STATS: render passes ended by a blit */
+#include <dlfcn.h>
 static id<MTLBlitCommandEncoder> blit(void)
 {
-    if (s_enc) s_st_split++;
+    if (s_enc) {
+        s_st_split++;
+        {   /* hpcos-xbox-port: RECOMP_SPLIT_WHO=1: which code ends render passes with a blit */
+            static int on = -1; static void *who[16]; static unsigned n[16], total;
+            if (on < 0) on = getenv("RECOMP_SPLIT_WHO") != NULL;
+            if (on) {
+                void *ra = __builtin_return_address(0); int k;
+                for (k = 0; k < 16 && who[k] && who[k] != ra; k++) ;
+                if (k < 16) { who[k] = ra; n[k]++; }
+                if (++total % 20000 == 0)
+                    for (k = 0; k < 16 && who[k]; k++) { Dl_info di; dladdr(who[k], &di);
+                        fprintf(stderr, "[split] %s+%ld x%u\n", di.dli_sname ? di.dli_sname : "?",
+                                (long)((char *)who[k] - (char *)di.dli_saddr), n[k]); }
+            }
+        }
+    }
     end_pass();
     if (!s_blit)
         s_blit = [s_cb blitCommandEncoder];
@@ -3244,6 +3260,16 @@ static void mtl_draw_raw_inner(const Nv2aRawBatch *b)
         id<MTLTexture> feedback = nil;
         for (i = 0; i < 4; i++)
             if (sampled[i] == s) {
+                /* hpcos-xbox-port: a stage whose shader program is NONE
+                 * (SET_SHADER_STAGE_PROGRAM, 5 bits a stage) is not read, however
+                 * it is bound, or one no combiner reads: no copy (HP-COS's StageSampled). CoS draws its
+                 * character shadows into the 1024x1024 page with that page left on
+                 * stage 1, and each of ~130 draws a frame copied the 4x page and
+                 * split the screen's pass: 6.8 GB of tile traffic, 24 fps. */
+                if (((r[0x1E70 / 4] >> (5 * i)) & 0x1F) == 0 || !nv2a_psh_reads_tex(&pk, (int)i)) {
+                    tex[i] = nil;
+                    continue;
+                }
                 if (!feedback) feedback = feedback_copy(s);
                 tex[i] = feedback;
             }

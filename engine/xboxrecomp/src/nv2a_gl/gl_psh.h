@@ -26,4 +26,7 @@ int nv2a_gl_psh(const Nv2aPshKey *k, char *buf, size_t cap);
 /* The same without the alpha test (ALPHA_TEST_ENABLE 0 or ALPHA_FUNC ALWAYS). */
 int nv2a_gl_psh_no_alpha_test(const Nv2aPshKey *k, char *buf, size_t cap);
 
+/* hpcos-xbox-port: whether the program reads texture t (see gl_psh.c). */
+int nv2a_psh_reads_tex(const Nv2aPshKey *k, int t);
+
 #endif
