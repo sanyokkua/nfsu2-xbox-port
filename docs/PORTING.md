@@ -105,6 +105,34 @@ out 90° off). The lifter now emits `recomp_ld_f80` / `recomp_st_f80` (`recomp_t
 test. NFSU2: 16 loads changed to `/* fld tbyte */`, no m80 stores. Relift, build, `tools/smoke.sh` and a scripted race
 (`RECOMP_PAD_PRESS=0x10,2500,200` plus `a` every 2.5 s from 21 s in `RECOMP_PAD_SCRIPT`) pass.
 
+## 8. Engine fixes from the Chamber of Secrets port (2026-11-23, not released)
+
+From `hpcos-xbox-port` (its notes: XBOX360_PORTING_NOTES.md section 14), commits 459e9a8, 6804dcd, d6e8046, afa393e,
+dab3b89, bc9538e:
+
+- **Texture border colour in the shader** (CoS `ca756e0`): border addressing (mode 4) samples clamp-to-edge and the fragment
+  shader returns the stage's `SET_TEXTURE_BORDER_COLOR` outside [0, 1] (`nv2a_samp`, `Nv2aMslFs.bc/bm`). A `[metal] border
+  addressing` line names each stage and colour a title uses. Checked: a scripted race (START every 2.5 s, then A every 2.5 s
+  from 21 s, 100 s): no stage with border addressing (the old sampler gave transparent black); race frames before and after
+  are the same picture at a different moment of the race.
+- **LB = White, RB = Black** and the **press latch** (CoS `dcc5179`, `12f88fc`): the bumpers were swapped in
+  `xinput_device.c` in every port of this engine; the keyboard keeps Q = White, E = Black (`apple_keyboard.c`). Presses are
+  latched from SDL's controller events between two reads (`RECOMP_PAD_LATCH=0` off) and held for `RECOMP_PAD_MIN_READS`
+  reads (default 2). `RECOMP_PAD_SCRIPT` does not go through SDL events, so scripted runs do not exercise the latch; needs a
+  pad in a play test.
+- **Runtime** (CoS `dcc5179`, `f38f328`, `cf6d9c2`): the handle table under a spinlock; a read on a handle closed within 2 s
+  returns `STATUS_END_OF_FILE`; `NtSetEvent` waits (2 ms at most) until the waiter it releases has queued for the guest lock
+  (`RECOMP_WAKE_HANDOFF=0` off, `RECOMP_EVT_TRACE=1`).
+- **No feedback copy** for a render target bound on a stage no combiner reads (CoS `9178756`, `nv2a_psh_reads_tex`).
+- **Not ported:** NFSU2 uses no W-buffer depth; it enables the fog unit only as linear fog with params 1, 1, where the fog
+  factor is the coordinate the vertex program writes, as drawn already. The CoS fog unit is not ported. The InsertCallback
+  latch hold is not needed: this tree has no clear-value latch (only CoS's XDK 5028 calls back through it). Viewport
+  constants 58/59 from `SET_VIEWPORT_*`: this XDK writes the constants itself. The worker wait, loader callbacks, file-cache
+  hold, DirectSound address tag, 2D tile seams, cutscene skip and left-stick range are CoS's own code or tuning.
+- Verified: `cmake --build build/release`; `tools/smoke.sh` OK; the Metal shader test (463 shader pairs, 63 recorded by the
+  run, 0 failures); frame throughput as before. The runtime's own unit tests (`engine/xboxrecomp/tests/kernel_*`) need
+  `pkg-config`, not installed on this Mac: not run.
+
 ## Pitfalls (each cost a run)
 
 - **zsh doesn't split `$VAR` into words:** `AM="git am -q"; $AM p` is "command not found". Use a function.

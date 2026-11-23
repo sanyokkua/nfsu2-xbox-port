@@ -68,7 +68,9 @@ the game runs.
 | Tab / P | Back / Start | |
 | I J K L | right stick | |
 
-The keys can't be changed yet. The controller's buttons are the game's own Xbox layout.
+The keys can't be changed yet. The controller's buttons are the game's own Xbox layout. A modern pad's bumpers stand in for the
+original controller's White and Black buttons: **LB is White, RB is Black** (as in xemu). A press shorter than one of the
+game's frames is still seen once.
 
 ### The settings menu
 

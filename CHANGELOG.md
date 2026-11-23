@@ -1,5 +1,21 @@
 # Changelog
 
+## Unreleased
+
+Engine fixes from the Harry Potter Chamber of Secrets port:
+
+- Renderer: textures with border addressing get the stage's own border colour (the fragment shader returns
+  `SET_TEXTURE_BORDER_COLOR` outside [0, 1]); Metal samplers only have black or white borders.
+- Controller: **LB is White, RB is Black** (they were swapped; as on the original controller and in xemu). The keyboard keeps
+  Q = White, E = Black. A press shorter than one of the game's frames is still seen, and held for at least two reads.
+- Runtime: the file handle table is locked (two threads opening files at once could share a slot); a read on a handle that
+  was just closed ends the file instead of failing as a disc error; an event set hands the CPU to the thread it wakes, as
+  on the Xbox (a lost wake-up hung CoS at a loading screen).
+- Renderer: no copy of a render target that stays bound on a stage no shader reads (CoS: 24 -> 60 fps).
+- Log: one `[metal]` line each for border addressing, W-buffer depth and fog-unit use.
+  NFSU2 uses no W-buffer depth; its fog is linear with params 1, 1 (factor = coordinate, as drawn
+  already), so the CoS fog unit is not ported.
+
 ## 0.1.1 (2026-11-23)
 
 - Lifter: x87 80-bit operands (`fld`/`fstp` of a 10-byte value) were read as 4-byte floats and not stored at all. The C
