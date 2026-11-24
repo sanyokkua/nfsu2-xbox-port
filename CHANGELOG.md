@@ -15,6 +15,17 @@ Engine fixes from the Harry Potter Chamber of Secrets port:
 - Log: one `[metal]` line each for border addressing, W-buffer depth and fog-unit use.
   NFSU2 uses no W-buffer depth; its fog is linear with params 1, 1 (factor = coordinate, as drawn
   already), so the CoS fog unit is not ported.
+- **The app no longer aborts when a controller disconnects.** Pads are opened and closed on the main thread only
+  (sdl2-compat's pad list has no lock; the game thread re-scanned it while the main thread did, and freed it twice); the game
+  thread only reads them. The button-glyph check also enumerates pads on the main thread now.
+- Lifter: **272 pieces of real code were empty stubs.** A jump into code the disassembler had not marked as a function
+  start (often a shared exit like `pop edi; pop esi; ret`) got an empty body: the pops never ran and the caller got its
+  stack and registers back wrong. All 272 are seeded; `tools/stubcheck.py` (run by `tools/relift.sh`) fails when one is left.
+- Runtime: a skipped wild indirect call at a caller-cleans-up site keeps esp right; timers signal before their DPC and
+  inside the lock, and a set resets inside the lock (lost wake-ups), 256 timer slots; file reads and writes hold their handle
+  (a close on another thread can no longer free it in use) and read at an offset in one `pread`/`pwrite`; a handle closes
+  once; handle slots are handed out next-fit, 65536 of them; a stale Ke object shadow is dropped; the heap refuses a size
+  larger than itself.
 
 ## 0.1.1 (2026-11-23)
 

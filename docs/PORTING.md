@@ -133,6 +133,41 @@ dab3b89, bc9538e:
   run, 0 failures); frame throughput as before. The runtime's own unit tests (`engine/xboxrecomp/tests/kernel_*`) need
   `pkg-config`, not installed on this Mac: not run.
 
+## 9. More from the Chamber of Secrets port: lifetimes, stub check, pad hotplug (2026-11-24, not released)
+
+From `hpcos-xbox-port` `58773a1`, `33a2b93` (runtime), `6ce58e0` (stub check), `e64d110` (pads). Both runtime patches applied
+cleanly on top of this repo's own handle lock (`d6e8046`, itself from CoS): the next-fit allocation sits inside that lock.
+
+- **Runtime:** `recomp_icall_skip_esp` (a skipped wild call followed by `add esp, N` pops only the return address); timer
+  fire signals inside `g_timer_lock` before the DPC, `kernel_set_timer` resets inside it and logs when its 256 slots run out;
+  `BRIDGE_HANDLE_MAX` 65536, next-fit; `kdisp_is_guest` drops a shadow whose memory now holds a guest event; Ke objects get
+  their shadow after their header; `win32_compat`: open handles counted apart from references (`obj_get`), `CloseHandle`
+  drops one handle once, `DuplicateHandle` adds one, `WaitForSingleObject` and `NtReadFile`/`NtWriteFile` hold the object
+  (`w32_handle_get_fd`/`w32_handle_put`), `pread`/`pwrite` at an offset; registry 262144 slots with a log when full; heap
+  sizes larger than the heap refused (one near 4 GB rounded to 0). Not taken: CoS's game region `0x104` (its NTSC choice),
+  its spawner guard, entity diagnostics and `HPCOS_*` switches.
+- **Stub check:** `engine/gen/recomp_stubs_unresolved.c` gives every jump or call target the disassembler did not detect an
+  empty body. `tools/stubcheck.py` (after a full lift) classes each: an instruction start in a detected function (BOUNDARY) or
+  undetected code is real and must be seeded (`tools/addseed.py`); mid-instruction, data, int3 padding and reviewed table
+  bytes are harmless. Adapted for this XBE: x86 sections `.text D3D XGRPH XNET XONLINE DSOUND XPP` read from the headers, and
+  the `ret N` stubs counted too (CoS's regex saw only the `not detected` ones). `tools/relift.sh` = regen, stubcheck, build.
+  - NFSU2 had 133 real of 157. Seeding splits functions and exposes new cross-boundary jumps: rounds of 130, 111, 24, 5, 2
+    seeds (272 in all, `seed_functions.json` 17 -> 289, each noted "Stub check round N"), then 0 real of 27 stubs. Most were
+    loop heads or branch targets inside functions the sweep had cut at a `tail_jump_alias` (e.g. a dozen aliases at
+    0x00100002..0x001000DF all jumping back to 0x000FFF60); 23 were epilogues (`pop`/`leave`/`ret`), the CoS freeze shape.
+  - Not seeded: 0x001154DA, 0x00115502 (int3, jumped to from a jump table walked as code) and 0x00257295: a `jb` decoded from
+    the jump table at 0x00257270. The disassembler rejects that seed (inside an instruction of the misdecoded table), and the
+    real code there is lifted whole in `sub_00257291`; stubcheck lists it as `table`.
+  - The list with each stub's instructions: the side-session notes `nfsu2-stubcheck-seeds.md` (outside the repo).
+- **Pads:** `xbox_input_rescan()` opens and closes pads on the main thread (at start and on `SDL_JOYDEVICEADDED/REMOVED`); the
+  game thread reads them under `g_pad_lock` with no `SDL_GameControllerUpdate`; rumble takes the lock. NFSU2's own
+  `apple_prompts.m` (button glyphs) enumerated pads from the game thread on its first 32x32 texture and from an event watch:
+  now `nfsu2_prompts_pads_changed()`, called next to the rescan. `NFSU2_PAD_HOTPLUG_TEST=<ms>` attaches and detaches a
+  virtual pad that often.
+- Verified: `tools/relift.sh` (stubcheck 0 real, build OK, no new warnings); `tools/smoke.sh` OK (75 s, last mean 45); a
+  scripted race (START every 2.5 s, A every 2.5 s from 21 s, 100 s): clean exit, last frame in a race (lap 1/3); the same for
+  120 s with `NFSU2_PAD_HOTPLUG_TEST=37`: 3586 rescans, clean exit, no abort, last frame mean 51. All in throwaway HOMEs.
+
 ## Pitfalls (each cost a run)
 
 - **zsh doesn't split `$VAR` into words:** `AM="git am -q"; $AM p` is "command not found". Use a function.
