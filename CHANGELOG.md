@@ -8,6 +8,10 @@ Engine and tool fixes from the Harry Potter Prisoner of Azkaban port:
   count as evidence for a function start. On this disc the result is unchanged (20,634 starts, none dropped or added).
 - Kernel: `ExQueryNonVolatileSetting` answers `XC_FACTORY_AV_REGION` (0x103) as NTSC-M (0x00400100); it was 0.
   Only titles that call `XGetVideoStandard` see it.
+- Metal: shaders compile as MSL 3.0 (`RECOMP_MTL_LANG=<major>.<minor>` overrides, `0` = Metal's default, which is 4.0 here).
+  First-seen programs compile about 3x faster (smoke: 3 programs 194 ms -> 57 ms). The `[hitch]` line also counts pipelines.
+- `tools/immscan.py` and `tools/seedcheck.py`: find missed functions referenced only by an immediate. The 3 hits on this
+  disc are not function starts; no seeds.
 - `tools/stubcheck.py` already covered `.text` and every XDK code section of this XBE (by name and raw size, so zero fill
   past a section's raw data is data); rerun: 27 stubs, 0 real code, no new seeds.
 

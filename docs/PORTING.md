@@ -182,6 +182,21 @@ cleanly on top of this repo's own handle lock (`d6e8046`, itself from CoS): the 
    section's raw data is already data. Rerun on the fresh lift: 27 stubs, 0 real code, no seed added.
 4. **Smoke** (`tools/smoke.sh 75`, own HOME): OK, 6 frames, last frame mean 45.
 
+## 11. More PoA backports (2026-11-24, unreleased)
+
+1. **MSL 3.0** (hppoa b85ffa1). `s_copts.languageVersion` = 3.0, `RECOMP_MTL_LANG` overrides, the hitch line counts pipelines. Two
+   `tools/smoke.sh 75` runs on fresh HOMEs, same binary: log says `shader language 3.0` (4.0 with `RECOMP_MTL_LANG=0`),
+   no `shader failed`, no `pipeline creation failed`. First-seen programs: 3 compiled in **57 ms vs 194 ms** (the one hitch
+   with compiles: 234 ms at 4.0). Hitch count and total are the same (10 each; the others are texture loads and the menu).
+   Frame dumps 1200..4200 are pixel-identical; dump 600 differs (menu animation timing). Menu run only, no route run.
+2. **`tools/immscan.py` + `seedcheck.py`** (with `sigmatch.py`, copied from hppoa). 2,669 immediates into code, 3 hits, all
+   false: the target is int3 padding, and the real function after it (0x4C260, 0x10C2D0, 0x119150) is already a start.
+   0x4C25D and 0x10C2C9 are bytes of `fstp [ecx+68h]` / `... 68 c9 c2 10 00` read as `push imm32` (the immediate is the
+   following `pop ebp; ret 4` / `leave; ret 10h`); 0x119144 is `mov eax, 0x119144; pop ebp; ret`, a constant, not a pointer
+   (the 2 callers push it as a value). No seeds, so no relift; stubcheck unchanged (27 stubs, 0 real).
+3. **Learned stick range** (hppoa 8cfb709): not applicable. This port has no `stick_deadzone.h` and no fixed 0.65
+   `RECOMP_STICK_RANGE` (the CoS change was never backported here), so steering is unchanged.
+
 ## Pitfalls (each cost a run)
 
 - **zsh doesn't split `$VAR` into words:** `AM="git am -q"; $AM p` is "command not found". Use a function.
