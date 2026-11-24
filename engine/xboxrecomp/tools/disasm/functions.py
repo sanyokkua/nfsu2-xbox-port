@@ -509,16 +509,37 @@ class FunctionDetector:
             i = bisect.bisect_right(starts, addr) - 1
             return i >= 0 and addr < bounds[i][1]
 
+        def function_at(addr: int):
+            i = bisect.bisect_right(starts, addr) - 1
+            return starts[i] if i >= 0 and addr < bounds[i][1] else None
+
         callers: Dict[int, List[int]] = {}
         for insn in self.engine.instructions.values():
-            if insn.is_call and insn.call_target in self._split_call_targets:
+            if insn.is_call:
                 callers.setdefault(insn.call_target, []).append(insn.address)
+
+        # A function known only as a call target, and called only from outside
+        # every function, is itself a body decoded out of data: its calls are
+        # no evidence either. PoA's XGRPH tables decode as sub_002B48AE (its one
+        # caller is in the tables too), whose "call 0x002B87FF" cut DSOUND's
+        # pool allocator after ExQueryPoolBlockSize: every DirectSound object
+        # got its block size as its address. Such functions are kept; only
+        # their calls stop counting as a real caller.
+        def from_data(start) -> bool:
+            cand = self._candidates.get(start)
+            return (cand is not None and cand[1] == "call_target"
+                    and not any(inside_a_function(a) for a in callers.get(start, [])))
+
+        def real_caller(addr: int) -> bool:
+            f = function_at(addr)
+            return f is not None and not from_data(f)
+
         dropped = []
         for target in sorted(self._split_call_targets):
             cand = self._candidates.get(target)
             if not cand or cand[1] != "call_target":
                 continue
-            if any(inside_a_function(a) for a in callers.get(target, [])):
+            if any(real_caller(a) for a in callers.get(target, [])):
                 continue
             del self._candidates[target]
             dropped.append(target)
