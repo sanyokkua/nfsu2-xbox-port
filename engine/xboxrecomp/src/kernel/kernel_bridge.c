@@ -1960,6 +1960,7 @@ static void bridge_NtCreateEvent(void)
 
 static HANDLE ke_shadow_lookup(uint32_t guest_va);
 static void ke_shadow_insert(uint32_t guest_va, HANDLE host);
+static void ke_shadow_remove(uint32_t guest_va);
 static HANDLE bridge_resolve_handle(uint32_t token);
 
 /* ── Guest-resident dispatcher objects ───────────────────────────────────
@@ -2008,16 +2009,28 @@ static int kdisp_is_guest(uint32_t va)
 {
     uint8_t type, size;
 
+    int guest;
+
     if (va < 0x10000 || va > XBOX_TOTAL_RAM - 0x14)
-        return 0;
-    if (ke_shadow_lookup(va))
         return 0;
     type = BRIDGE_MEM8(va);
     size = BRIDGE_MEM8(va + 2);
     if (type == KDISP_EVENT_NOTIFICATION || type == KDISP_EVENT_SYNCHRONIZE)
-        return size == 4;
-    if (type == KDISP_SEMAPHORE)
-        return size == 5;
+        guest = size == 4;
+    else if (type == KDISP_SEMAPHORE)
+        guest = size == 5;
+    else
+        guest = 0;
+    if (!ke_shadow_lookup(va))
+        return guest;
+    /* A shadowed object's header says Size 16 or 40 (the Ke initialisers write
+     * it); one that now reads as the guest's own event or semaphore is memory
+     * the title freed and reused: the shadow is stale. Left in place it took
+     * the new object's waits and signals to the old host object. */
+    if (guest) {
+        ke_shadow_remove(va);
+        return 1;
+    }
     return 0;
 }
 
@@ -3342,7 +3355,7 @@ static void bridge_KeInitializeTimerEx(void)
  * audio off a timer. A title that needs better wants the host's timer queue,
  * not a smaller sleep.
  */
-#define XBOX_MAX_TIMERS 32
+#define XBOX_MAX_TIMERS 256
 typedef struct {
     uint32_t timer_va;      /* the guest KTIMER, 0 for a free slot */
     uint32_t dpc_va;
@@ -3414,21 +3427,26 @@ static DWORD WINAPI kernel_timer_thread(LPVOID unused)
                 g_timers[i].due_ms = now + g_timers[i].period_ms;
             else
                 g_timers[i].timer_va = 0;      /* one-shot, done */
+            /* Signal inside the lock and before the DPC, as the kernel does
+             * (the timer is signalled, then its DPC queued): a KeSetTimer of
+             * the same timer -- by the DPC or a game thread -- comes after
+             * this signal and its reset, never between them. Signalling after
+             * the DPC woke waiters of the timer the DPC had just re-armed;
+             * a set racing in before the signal had its reset undone, and a
+             * set landing just after had the signal wiped (lost wake-up).
+             * After MiddleDucky's HP-COS-Xbox-Recomp toolkit (MIT). */
+            {
+                HANDLE ev = ke_shadow_lookup(fired_va);
+                if (ev) {
+                    BRIDGE_MEM32(fired_va + 4) = 1;   /* SignalState */
+                    SetEvent(ev);
+                }
+            }
             LeaveCriticalSection(&g_timer_lock);
 
             /* Outside the lock: the routine can set or cancel timers. */
             if (dpc)
                 kernel_run_dpc(dpc, 0, 0);
-
-            /* Wake anyone parked on the timer's shadow event; a timer with no
-             * DPC is just a kernel sleep. */
-            {
-                HANDLE ev = ke_shadow_lookup(fired_va);
-                if (ev) {
-                    SetEvent(ev);
-                    BRIDGE_MEM32(fired_va + 4) = 1;   /* SignalState */
-                }
-            }
         }
         xbox_KfLowerIrql(PASSIVE_LEVEL);
     }
@@ -3453,20 +3471,27 @@ static void kernel_set_timer(uint32_t timer_va, long long due_100ns,
         if (g_timers[i].timer_va == timer_va) { free_slot = i; was_set = 1; break; }
         if (!g_timers[i].timer_va && free_slot < 0) free_slot = i;
     }
+    /* A freshly set timer starts unsignaled, like the real KeSetTimer: reset
+     * inside the lock, before the slot is armed, so the timer thread cannot
+     * fire it in between and have its signal wiped. */
+    {
+        HANDLE ev = ke_shadow_lookup(timer_va);
+        if (ev)
+            ResetEvent(ev);
+        BRIDGE_MEM32(timer_va + 4) = 0;     /* SignalState */
+    }
     if (free_slot >= 0) {
         g_timers[free_slot].timer_va  = timer_va;
         g_timers[free_slot].dpc_va    = dpc_va;
         g_timers[free_slot].due_ms    = (long long)GetTickCount64() + delay_ms;
         g_timers[free_slot].period_ms = period_ms;
+    } else {
+        static int warned;
+        if (!warned++)
+            fprintf(stderr, "  [KERNEL] KeSetTimer: all %d timer slots in use; "
+                            "timer 0x%08X not armed\n", XBOX_MAX_TIMERS, timer_va);
     }
     LeaveCriticalSection(&g_timer_lock);
-
-    /* A freshly set timer starts unsignaled, like the real KeSetTimer. */
-    {
-        HANDLE ev = ke_shadow_lookup(timer_va);
-        if (ev)
-            ResetEvent(ev);
-    }
     g_eax = was_set;
 }
 
@@ -3635,7 +3660,7 @@ static void bridge_write_iostatus(uint32_t ios_va, NTSTATUS status, uint32_t inf
  */
 #define BRIDGE_HANDLE_TAG  0x48000000u
 #define BRIDGE_HANDLE_MASK 0x00FFFFFFu
-#define BRIDGE_HANDLE_MAX  16384
+#define BRIDGE_HANDLE_MAX  65536   /* CoS leaks an event per rumble (HP-COS issue #15) */
 static HANDLE s_handle_table[BRIDGE_HANDLE_MAX];
 /* hpcos-xbox-port: the table is shared by every guest thread, and file calls run
  * outside the guest lock. Two threads opening at once both took the same free
@@ -3658,12 +3683,21 @@ static uint32_t bridge_handle_token(HANDLE h)
     handle_lock();
     for (i = 1; i < BRIDGE_HANDLE_MAX; i++)
         if (s_handle_table[i] == h) { handle_unlock(); return BRIDGE_HANDLE_TAG | (uint32_t)i; }
-    for (i = 1; i < BRIDGE_HANDLE_MAX; i++)
-        if (s_handle_table[i] == NULL) {
-            s_handle_table[i] = h;
-            handle_unlock();
-            return BRIDGE_HANDLE_TAG | (uint32_t)i;
-        }
+    /* Next fit, not lowest free: a closed token is not handed out again until
+     * the table wraps, so a late call on it (a reader racing its close) finds
+     * no handle rather than the next file opened. */
+    {
+        static int next = 1;
+        int k;
+        for (k = 1; k < BRIDGE_HANDLE_MAX; k++, next = next + 1 < BRIDGE_HANDLE_MAX ? next + 1 : 1)
+            if (s_handle_table[next] == NULL) {
+                i = next;
+                s_handle_table[i] = h;
+                next = next + 1 < BRIDGE_HANDLE_MAX ? next + 1 : 1;
+                handle_unlock();
+                return BRIDGE_HANDLE_TAG | (uint32_t)i;
+            }
+    }
     handle_unlock();
     fprintf(stderr, "  [BRIDGE] handle table full\n");
     return 0;
@@ -7806,8 +7840,6 @@ static void bridge_KeInitializeEvent(void)
         return;
     }
 
-    ke_shadow_insert(guest_va, h);
-
     /* Also zero the guest KEVENT struct (16 bytes) and set SignalState.
      * KEVENT layout: +0x00 Type(UCHAR), +0x01 Absolute(UCHAR),
      *                +0x02 Size(UCHAR), +0x03 Inserted(UCHAR)
@@ -7820,6 +7852,10 @@ static void bridge_KeInitializeEvent(void)
     BRIDGE_MEM32(guest_va + 4) = initial_state ? 1 : 0; /* SignalState */
     BRIDGE_MEM32(guest_va + 8) = 0;  /* WaitListHead.Flink (self/empty) */
     BRIDGE_MEM32(guest_va + 12) = 0; /* WaitListHead.Blink (self/empty) */
+
+    /* The header first, then the shadow: a header still reading as a guest
+     * object (Size 4) beside a shadow is taken as a stale shadow and dropped. */
+    ke_shadow_insert(guest_va, h);
 
     g_eax = 0;
 }
@@ -7838,8 +7874,6 @@ static void bridge_KeInitializeMutant(void)
         return;
     }
 
-    ke_shadow_insert(guest_va, h);
-
     /* Mutant dispatcher header. SignalState semantics differ from events:
      * a mutant is SIGNALLED (owned count 0) when its SignalState is 0.
      * Win32 CreateMutex(initialOwner=TRUE) is owned, so SignalState=1. */
@@ -7850,6 +7884,10 @@ static void bridge_KeInitializeMutant(void)
     BRIDGE_MEM32(guest_va + 4) = initial_owner ? 1 : 0; /* SignalState */
     BRIDGE_MEM32(guest_va + 8) = 0;   /* WaitListHead */
     BRIDGE_MEM32(guest_va + 12) = 0;
+
+    /* The header first, then the shadow: a header still reading as a guest
+     * object (Size 4) beside a shadow is taken as a stale shadow and dropped. */
+    ke_shadow_insert(guest_va, h);
 
     g_eax = 0;
 }
@@ -7869,8 +7907,6 @@ static void bridge_KeInitializeSemaphore(void)
         return;
     }
 
-    ke_shadow_insert(guest_va, h);
-
     BRIDGE_MEM8(guest_va + 0)  = 18;   /* DispatcherObjectType */
     BRIDGE_MEM8(guest_va + 1)  = 0;
     BRIDGE_MEM8(guest_va + 2)  = 16;
@@ -7878,6 +7914,10 @@ static void bridge_KeInitializeSemaphore(void)
     BRIDGE_MEM32(guest_va + 4) = (LONG)count; /* SignalState = count */
     BRIDGE_MEM32(guest_va + 8) = 0;   /* WaitListHead */
     BRIDGE_MEM32(guest_va + 12) = 0;
+
+    /* The header first, then the shadow: a header still reading as a guest
+     * object (Size 4) beside a shadow is taken as a stale shadow and dropped. */
+    ke_shadow_insert(guest_va, h);
 
     g_eax = 0;
 }

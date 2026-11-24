@@ -128,6 +128,8 @@ BOOL  DuplicateHandle(HANDLE srcProc, HANDLE src, HANDLE dstProc,
  * handles flow through the same CloseHandle path as every other object. */
 HANDLE      w32_open_handle(int fd, const char *host_path);
 int         w32_handle_fd(HANDLE h);
+int         w32_handle_get_fd(HANDLE h, void **ref);
+void        w32_handle_put(void *ref);
 const char *w32_handle_path(HANDLE h);
 
 /* ---- Events ----------------------------------------------------------- */

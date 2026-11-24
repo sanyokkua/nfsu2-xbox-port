@@ -855,9 +855,16 @@ static ssize_t host_write(int fd, const void *buf, size_t len)
     pthread_mutex_unlock(&s_io_bounce_lock);
     return (ssize_t)done;
 }
+/* No pread here: everything goes through the bounce buffer (seek, then read). */
+static ssize_t host_pread(int fd, void *buf, size_t len, off_t off)
+{ lseek(fd, off, SEEK_SET); return host_read(fd, buf, len); }
+static ssize_t host_pwrite(int fd, const void *buf, size_t len, off_t off)
+{ lseek(fd, off, SEEK_SET); return host_write(fd, buf, len); }
 #else
 #define host_read  read
 #define host_write write
+#define host_pread  pread
+#define host_pwrite pwrite
 #endif
 
 /* fstat, or stat of the handle's path for a directory handle. */
@@ -943,21 +950,29 @@ NTSTATUS __stdcall xbox_NtReadFile(
     if (!IoStatusBlock)
         return STATUS_INVALID_PARAMETER;
 
-    int fd = w32_handle_fd(FileHandle);
+    void *ref;
+    int fd = w32_handle_get_fd(FileHandle, &ref);
     if (fd < 0) {
         IoStatusBlock->Status = STATUS_INVALID_HANDLE;
         return STATUS_INVALID_HANDLE;
     }
 
+    /* A read at an offset is one pread: two threads reading the same handle at
+     * their own offsets (the file cache's worker and the streamer) each got the
+     * other's bytes between a seek and a read. The file pointer still ends after
+     * the bytes read, as NtReadFile leaves it. */
     int64_t pos = -1;
+    ssize_t n;
     if (ByteOffset && ByteOffset->QuadPart >= 0) {
-        lseek(fd, (off_t)ByteOffset->QuadPart, SEEK_SET);
         pos = ByteOffset->QuadPart;
-    } else if (xbox_file_read_hook) {
-        pos = (int64_t)lseek(fd, 0, SEEK_CUR);
+        n = host_pread(fd, Buffer, Length, (off_t)pos);
+        if (n >= 0) lseek(fd, (off_t)(pos + n), SEEK_SET);
+    } else {
+        if (xbox_file_read_hook)
+            pos = (int64_t)lseek(fd, 0, SEEK_CUR);
+        n = host_read(fd, Buffer, Length);
     }
-
-    ssize_t n = host_read(fd, Buffer, Length);
+    w32_handle_put(ref);
     if (n < 0) {
         XBOX_TRACE(XBOX_LOG_FILE, "NtReadFile(handle=%p) errno=%d", FileHandle, errno);
         IoStatusBlock->Status = STATUS_UNSUCCESSFUL;
@@ -986,16 +1001,21 @@ NTSTATUS __stdcall xbox_NtWriteFile(
     if (!IoStatusBlock)
         return STATUS_INVALID_PARAMETER;
 
-    int fd = w32_handle_fd(FileHandle);
+    void *ref;
+    int fd = w32_handle_get_fd(FileHandle, &ref);
     if (fd < 0) {
         IoStatusBlock->Status = STATUS_INVALID_HANDLE;
         return STATUS_INVALID_HANDLE;
     }
 
-    if (ByteOffset && ByteOffset->QuadPart >= 0)
-        lseek(fd, (off_t)ByteOffset->QuadPart, SEEK_SET);
-
-    ssize_t n = host_write(fd, Buffer, Length);
+    ssize_t n;
+    if (ByteOffset && ByteOffset->QuadPart >= 0) {   /* one pwrite, as the read */
+        n = host_pwrite(fd, Buffer, Length, (off_t)ByteOffset->QuadPart);
+        if (n >= 0) lseek(fd, (off_t)(ByteOffset->QuadPart + n), SEEK_SET);
+    } else {
+        n = host_write(fd, Buffer, Length);
+    }
+    w32_handle_put(ref);
     if (n < 0) {
         XBOX_TRACE(XBOX_LOG_FILE, "NtWriteFile(handle=%p) errno=%d", FileHandle, errno);
         IoStatusBlock->Status = STATUS_UNSUCCESSFUL;

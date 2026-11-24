@@ -3705,6 +3705,11 @@ static uint32_t heap_alloc_locked(uint32_t size, uint32_t alignment)
      * the next movie's decoder, which then ran inline on the main thread and
      * froze the game). The aligned piece is carved out; what is left in front
      * and behind stays free. */
+    /* A garbage size near 4 GB rounded to 0 and passed every check below. */
+    if (size > (uint32_t)(XBOX_HEAP_TOP - XBOX_HEAP_BASE)) {
+        fprintf(stderr, "xbox_HeapAlloc: refused %u bytes (larger than the heap)\n", size);
+        return 0;
+    }
     size = (size + 15) & ~15u;
     for (int i = 0; i < g_heap_block_count; i++) {
         uint32_t a, start, end, front, back;
@@ -3735,7 +3740,7 @@ static uint32_t heap_alloc_locked(uint32_t size, uint32_t alignment)
     /* Align the next pointer */
     result = (g_heap_next + alignment - 1) & ~(alignment - 1);
 
-    if (result + size > XBOX_HEAP_TOP) {
+    if ((uint64_t)result + size > XBOX_HEAP_TOP) {
         fprintf(stderr, "xbox_HeapAlloc: out of memory (requested %u, used %u/%u)\n",
                 size, g_heap_next - XBOX_HEAP_BASE,
                 (unsigned)(XBOX_HEAP_TOP - XBOX_HEAP_BASE));

@@ -1122,6 +1122,26 @@ extern volatile uint64_t g_icall_guard_misses;
 } while(0)
 
 /**
+ * recomp_icall_skip_esp - the esp a skipped (wild or unresolved) indirect call
+ * leaves. The return address is on the stack. When the instruction it returns to
+ * is `add esp, N`, the caller pops its own arguments (cdecl): a skip then pops
+ * only the return address, as a function that does nothing would. Otherwise the
+ * callee would have popped them (stdcall/thiscall): esp goes back to before the
+ * pushes. Restoring "before the pushes" at a cdecl site left esp N bytes too high
+ * after the caller's add, and its pops and locals came from the wrong slots.
+ */
+static inline uint32_t recomp_icall_skip_esp(uint32_t saved_esp)
+{
+    uint32_t ret = MEM32(g_esp);
+    if (ret >= 0x10000u && ret < 0x04000000u) {
+        uint8_t b0 = MEM8(ret), b1 = MEM8(ret + 1);
+        if ((b0 == 0x83u || b0 == 0x81u) && b1 == 0xC4u)
+            return g_esp + 4;
+    }
+    return saved_esp;
+}
+
+/**
  * RECOMP_ICALL_SAFE - Stack-safe indirect call.
  *
  * Restores g_esp to saved_esp (pre-argument value) on lookup failure,
@@ -1136,7 +1156,7 @@ extern volatile uint64_t g_icall_guard_misses;
     g_icall_count++; \
     if (!RECOMP_ICALL_IS_CODE(_va)) { \
         recomp_icall_not_code_log(_va); \
-        g_esp = (saved_esp); eax = 0; RECOMP_ICALL_FAIL_SYNC(); break; \
+        g_esp = recomp_icall_skip_esp(saved_esp); eax = 0; RECOMP_ICALL_FAIL_SYNC(); break; \
     } \
     recomp_func_t _fn = recomp_lookup_manual(_va); \
     if (!_fn) _fn = recomp_lookup(_va); \
@@ -1144,7 +1164,7 @@ extern volatile uint64_t g_icall_guard_misses;
     if (_fn) { RECOMP_ICALL_OBSERVE(_va, RECOMP_ICALL_SEEN_RESOLVED); \
                RECOMP_ABI_CALL(_va, _fn); } \
     else { RECOMP_ICALL_OBSERVE(_va, RECOMP_ICALL_SEEN_UNRESOLVED); \
-           recomp_icall_fail_log(_va); g_esp = (saved_esp); eax = 0; RECOMP_ICALL_FAIL_SYNC(); } \
+           recomp_icall_fail_log(_va); g_esp = recomp_icall_skip_esp(saved_esp); eax = 0; RECOMP_ICALL_FAIL_SYNC(); } \
 } while(0)
 
 /**
@@ -1162,7 +1182,7 @@ extern volatile uint64_t g_icall_guard_misses;
     g_icall_count++; \
     if (!RECOMP_ICALL_IS_CODE(_va)) { \
         recomp_icall_not_code_log(_va); \
-        g_esp = (saved_esp); eax = 0; RECOMP_ICALL_FAIL_SYNC(); break; \
+        g_esp = recomp_icall_skip_esp(saved_esp); eax = 0; RECOMP_ICALL_FAIL_SYNC(); break; \
     } \
     RECOMP_ICALL_OBSERVE_SITE((site), _va); \
     recomp_func_t _fn = recomp_lookup_manual(_va); \
@@ -1171,7 +1191,7 @@ extern volatile uint64_t g_icall_guard_misses;
     if (_fn) { RECOMP_ICALL_OBSERVE(_va, RECOMP_ICALL_SEEN_RESOLVED); \
                RECOMP_ABI_CALL(_va, _fn); } \
     else { RECOMP_ICALL_OBSERVE(_va, RECOMP_ICALL_SEEN_UNRESOLVED); \
-           recomp_icall_fail_log(_va); g_esp = (saved_esp); eax = 0; RECOMP_ICALL_FAIL_SYNC(); } \
+           recomp_icall_fail_log(_va); g_esp = recomp_icall_skip_esp(saved_esp); eax = 0; RECOMP_ICALL_FAIL_SYNC(); } \
 } while(0)
 
 /**

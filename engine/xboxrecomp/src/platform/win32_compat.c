@@ -285,7 +285,8 @@ typedef enum { K_EVENT, K_SEM, K_MUTEX, K_THREAD, K_TIMER, K_HEAP,
 
 typedef struct w32_object {
     w32_kind        kind;
-    LONG            refcount;
+    LONG            refcount;       /* open handles + references in use (obj_get) */
+    LONG            handles;        /* open handles: CloseHandle drops one, once each */
     pthread_mutex_t lock;
     pthread_cond_t  cond;
 
@@ -385,7 +386,7 @@ HANDLE GetCurrentProcess(void)  { return PSEUDO_CURRENT_PROCESS; }
  * Every handle entry point resolves through obj_from(), which returns NULL for
  * anything not registered here, so a bad handle fails the way it does on
  * Windows instead of taking the process down. */
-#define W32_REG_SIZE 65536u            /* power of two */
+#define W32_REG_SIZE 262144u           /* power of two; well above the bridge's 65536 handles */
 #define W32_REG_TOMB ((w32_object *)(uintptr_t)1)
 static w32_object     *s_reg[W32_REG_SIZE];
 static pthread_mutex_t s_reg_lock = PTHREAD_MUTEX_INITIALIZER;
@@ -407,6 +408,8 @@ static void reg_add(w32_object *o)
         }
     }
     pthread_mutex_unlock(&s_reg_lock);
+    if (n == W32_REG_SIZE)
+        fprintf(stderr, "[w32] object registry full: a new handle will not resolve\n");
 }
 
 static void reg_remove(w32_object *o)
@@ -435,7 +438,40 @@ static w32_object *obj_from(HANDLE h)
     for (n = 0; n < W32_REG_SIZE && s_reg[i];
          n++, i = (i + 1) & (W32_REG_SIZE - 1)) {
         if (s_reg[i] == o) {
-            hit = o;
+            if (__atomic_load_n(&o->handles, __ATOMIC_ACQUIRE) > 0)
+                hit = o;            /* else closed, still held by a reader */
+            break;
+        }
+    }
+    pthread_mutex_unlock(&s_reg_lock);
+    if (!hit)
+        SetLastError(ERROR_INVALID_HANDLE);
+    return hit;
+}
+
+/* obj_from with a reference held: the object outlives a CloseHandle made by
+ * another thread while the caller still uses it (a wait parked on its condition
+ * variable, a read on its fd). Taken under the registry lock, and only while the
+ * count is above zero: obj_release drops the last reference before it removes the
+ * object from the registry. Pair with obj_release. */
+static w32_object *obj_get(HANDLE h)
+{
+    w32_object *o = (w32_object *)h, *hit = NULL;
+    uint32_t i, n;
+
+    if (!o || o == W32_REG_TOMB || h == INVALID_HANDLE_VALUE)
+        return NULL;
+    i = reg_hash(o);
+    pthread_mutex_lock(&s_reg_lock);
+    for (n = 0; n < W32_REG_SIZE && s_reg[i];
+         n++, i = (i + 1) & (W32_REG_SIZE - 1)) {
+        if (s_reg[i] == o) {
+            LONG r = __atomic_load_n(&o->handles, __ATOMIC_ACQUIRE) > 0
+                   ? __atomic_load_n(&o->refcount, __ATOMIC_ACQUIRE) : 0;   /* closed: no */
+            while (r > 0 && !__atomic_compare_exchange_n(&o->refcount, &r, r + 1, 0,
+                                                         __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+                ;
+            if (r > 0) hit = o;
             break;
         }
     }
@@ -450,6 +486,7 @@ static w32_object *obj_alloc(w32_kind kind)
     w32_object *o = (w32_object *)calloc(1, sizeof(w32_object));
     o->kind     = kind;
     o->refcount = 1;
+    o->handles  = 1;
     pthread_mutex_init(&o->lock, NULL);
     pthread_cond_init(&o->cond, NULL);
     pthread_cond_init(&o->gate, NULL);
@@ -489,6 +526,24 @@ HANDLE w32_open_handle(int fd, const char *host_path)
     return (HANDLE)o;
 }
 
+/* The fd of a file handle, with the handle held until w32_handle_put(ref):
+ * a close by another thread then cannot close the fd, and its number cannot go
+ * to the next open, while a read or write is using it. */
+int w32_handle_get_fd(HANDLE h, void **ref)
+{
+    w32_object *o = obj_get(h);
+    *ref = NULL;
+    if (!o) return -1;
+    if (o->kind != K_FILE) { obj_release(o); return -1; }
+    *ref = o;
+    return o->fd;
+}
+
+void w32_handle_put(void *ref)
+{
+    if (ref) obj_release((w32_object *)ref);
+}
+
 int w32_handle_fd(HANDLE h)
 {
     w32_object *o = obj_from(h);
@@ -508,8 +563,19 @@ BOOL CloseHandle(HANDLE h)
         return TRUE;
     {
         w32_object *o = obj_from(h);
+        LONG n;
         if (!o)
             return FALSE;
+        /* Drop one open handle, once: a second close of the same handle while a
+         * reader still holds the object must fail, not free it under the reader. */
+        n = __atomic_load_n(&o->handles, __ATOMIC_ACQUIRE);
+        while (n > 0 && !__atomic_compare_exchange_n(&o->handles, &n, n - 1, 0,
+                                                     __ATOMIC_ACQ_REL, __ATOMIC_ACQUIRE))
+            ;
+        if (n <= 0) {
+            SetLastError(ERROR_INVALID_HANDLE);
+            return FALSE;
+        }
         obj_release(o);
     }
     return TRUE;
@@ -526,10 +592,11 @@ BOOL DuplicateHandle(HANDLE srcProc, HANDLE src, HANDLE dstProc, PHANDLE dst,
     w32_object *o = obj_from(src);
     if (!o)
         return FALSE;
-    InterlockedIncrement(&o->refcount);
     *dst = src;
-    if (options & DUPLICATE_CLOSE_SOURCE)
-        obj_release(o);
+    if (!(options & DUPLICATE_CLOSE_SOURCE)) {   /* a second handle to the same object */
+        InterlockedIncrement(&o->handles);
+        InterlockedIncrement(&o->refcount);
+    }
     return TRUE;
 }
 
@@ -661,10 +728,13 @@ DWORD WaitForSingleObject(HANDLE h, DWORD ms)
     if (!h || h == PSEUDO_CURRENT_THREAD || h == PSEUDO_CURRENT_PROCESS)
         return WAIT_OBJECT_0;
     {
-        w32_object *o = obj_from(h);
+        w32_object *o = obj_get(h);   /* held: a close while parked must not free it */
+        DWORD r;
         if (!o)
             return WAIT_FAILED;
-        return wait_single(o, ms);
+        r = wait_single(o, ms);
+        obj_release(o);
+        return r;
     }
 }
 
