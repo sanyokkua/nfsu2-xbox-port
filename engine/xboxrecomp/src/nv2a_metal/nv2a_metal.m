@@ -65,8 +65,8 @@ static const uint32_t *s_regs;
 static const Nv2aRawBatch *s_batch;
 
 /* Hitch accounting, as in nv2a_vk. */
-static uint32_t s_hz_progs, s_hz_texs, s_hz_draws;
-static uint64_t s_hz_prog_ns, s_hz_tex_ns, s_hz_tex_bytes;
+static uint32_t s_hz_progs, s_hz_texs, s_hz_draws, s_hz_pipes;
+static uint64_t s_hz_prog_ns, s_hz_tex_ns, s_hz_tex_bytes, s_hz_pipe_ns;
 static uint64_t hz_now(void)
 {
     struct timespec ts;
@@ -2184,7 +2184,12 @@ static id<MTLRenderPipelineState> pipe_get(const PipeKey *k)
         return nil;
     VT("newRenderPipelineState prog %d blend %u cmask %X depth %u points %u\n", k->prog, k->blend,
        k->cmask, k->depth, k->points);
-    pipe = [s_dev newRenderPipelineStateWithDescriptor:d error:&err];
+    {
+        uint64_t t0 = hz_now();
+        pipe = [s_dev newRenderPipelineStateWithDescriptor:d error:&err];
+        s_hz_pipes++;
+        s_hz_pipe_ns += hz_now() - t0;
+    }
     if (!pipe) {
         LOGE("pipeline creation failed: %s\n", err.localizedDescription.UTF8String);
         return nil;
@@ -2456,6 +2461,20 @@ static int ready(void)
 #pragma clang diagnostic ignored "-Wdeprecated-declarations"
         s_copts.fastMathEnabled = NO;
 #pragma clang diagnostic pop
+    }
+    {   /* MSL 3.0, not the newest the OS has: the generated shaders need nothing newer, and the
+         * newer standard library is slow to compile (PoA: one combiner shader 540 ms at the default,
+         * 43 ms at 3.0). RECOMP_MTL_LANG=<major>.<minor> picks another version, 0 Metal's default. */
+        const char *e = getenv("RECOMP_MTL_LANG");
+        unsigned maj = 3, min = 0;
+        if (e && *e == '0' && !e[1])
+            maj = 0;
+        else if (e && *e)
+            sscanf(e, "%u.%u", &maj, &min);
+        if (maj)
+            s_copts.languageVersion = (MTLLanguageVersion)((maj << 16) | min);
+        LOGE("shader language %u.%u\n", (unsigned)(s_copts.languageVersion >> 16),
+             (unsigned)(s_copts.languageVersion & 0xFFFF));
     }
     {   /* Invariant positions (nv2a_metal_msl.c VOut): without them the compiler may fuse a
          * program's multiply-adds differently from another's, and layers drawn over the same
@@ -3880,13 +3899,13 @@ static void mtl_flip_inner(void)
             if (now - window_ns > 10000000000ull) { window_ns = now; lines = 0; }
             if (dt > 50000000ull && lines++ < 30)
                 fprintf(stderr, "[hitch] frame %u: %.0f ms -- %u programs compiled (%.0f ms),"
-                        " %u textures %.1f MB (%.0f ms), %u draws\n", s_frame, dt / 1e6,
+                        " %u textures %.1f MB (%.0f ms), %u draws, %u pipelines (%.0f ms)\n", s_frame, dt / 1e6,
                         s_hz_progs, s_hz_prog_ns / 1e6, s_hz_texs,
-                        s_hz_tex_bytes / 1048576.0, s_hz_tex_ns / 1e6, s_hz_draws);
+                        s_hz_tex_bytes / 1048576.0, s_hz_tex_ns / 1e6, s_hz_draws, s_hz_pipes, s_hz_pipe_ns / 1e6);
         }
         last_ns = now;
-        s_hz_progs = s_hz_texs = s_hz_draws = 0;
-        s_hz_prog_ns = s_hz_tex_ns = s_hz_tex_bytes = 0;
+        s_hz_progs = s_hz_texs = s_hz_draws = s_hz_pipes = 0;
+        s_hz_prog_ns = s_hz_tex_ns = s_hz_tex_bytes = s_hz_pipe_ns = 0;
     }
     {
         static int on = -1;
