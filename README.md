@@ -217,6 +217,7 @@ python3 -m venv .venv && .venv/bin/pip install 'capstone<6'
 python3 mac/import_disc.py <your .iso> game/extracted   # your disc's files
 tools/build_deps.sh                   # SDL3 + sdl2-compat for macOS 15+ -> build/deps
 tools/build_release.sh                # translate (engine/gen) + build -> build/release/nfsu2_recomp
+tools/relift.sh                       # re-translate after a seed change, check the stubs (stubcheck.py), build
 tools/smoke.sh                        # boot check: 75 s, START presses, the settings menu, the last frame not black
 tools/play.sh                         # play this build (its own player folder)
 tools/make_dmg.sh                     # the installer DMG, checked by tests/dmg_no_game_code.sh
