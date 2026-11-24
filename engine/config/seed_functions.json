@@ -66,5 +66,1093 @@
  {
   "start": "0x000930D0",
   "note": "Indirect-call target observed at runtime (thiscall method, after int3 padding; races call it every frame); decodes as a function body."
+ },
+ {
+  "start": "0x00019019",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000197A3",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0001A3E0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0001A450",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00020950",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00020960",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00021D54",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00022F00",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00022F20",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002A916",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002A9F0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002AA95",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00030083",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00030BDD",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00031592",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00031D90",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00031DFB",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00032160",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00032220",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000369BF",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000417D8",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000504E1",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00050D05",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0005553B",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0006FCF4",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00071E20",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00071ED0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0007445C",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00074460",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00075022",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0007DDD1",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000802EA",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A00CF",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A03C0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A1340",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A1360",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A15B0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000C5D5A",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000EC320",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000FFF60",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001079C3",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001200A0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0013FEC2",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0013FEF8",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0013FF25",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0013FFB0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00143C10",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00146447",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00147D73",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00147D77",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00147D7F",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00147D83",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0014FFCA",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00160010",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00167C89",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0017FF14",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00190281",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A069A",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A06C0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A06F0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A0720",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A08C2",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A0EA3",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A0EC1",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A0F16",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A0F80",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001AFFC9",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001BFF70",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001CDCAD",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001CFFB0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001D2A16",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001EFFC6",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00200FB0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00201120",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002017E6",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00203A91",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00203AB2",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00207060",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020C5E0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002118B2",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002118C0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00216B9E",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00218EA0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00218EA4",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0021AD3C",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0021AD8D",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0021ADA5",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0021DEE3",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0023FFE0",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00240600",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00244C20",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002453E2",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002453F7",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0024FF10",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00251D3A",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00277A11",
+  "note": "Stub check round 1: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00277A1F",
+  "note": "Stub check round 1: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00280070",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0029731F",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002A0830",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002A2A00",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002A6E9F",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AA49A",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AAFD8",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002ABEAE",
+  "note": "Stub check round 1: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AC0C5",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002ACFE7",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002ACFEA",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD482",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD49D",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AFF29",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AFF2F",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002CFE50",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002CFE60",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002D0020",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002D0060",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002D2DCD",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002EFC80",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002F0015",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00300D90",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00315F4F",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0031FE6C",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00322057",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00324C10",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00325646",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00325F3A",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00326001",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0032DA47",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00330022",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0033322A",
+  "note": "Stub check round 1: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00019184",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0001A4A1",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002099C",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00023043",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002AA9B",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002AB97",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002AC2B",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002ACBD",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002ACF6",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002AD4C",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00030159",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00030C11",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000320CB",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0003210A",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00032426",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000324AF",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000324B1",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00036E1E",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00050DBD",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0006FD31",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0006FDF4",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00071F39",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00071F3C",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00071F55",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00071F60",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00071F6B",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00071F8C",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000751E8",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0008037F",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A00CD",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A011B",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A0578",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A1459",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A1469",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A15FA",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A1657",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000EC334",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000EC335",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0013FFA6",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00140027",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00140034",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00146453",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00150133",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00160060",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00167CAC",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0017FFEE",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001902D5",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00190366",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A069D",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A1AF1",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A1B06",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A1B18",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A1C94",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A1CF6",
+  "note": "Stub check round 2: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A24A5",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001BFF9B",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001D010C",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00201009",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002011D2",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002019EE",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00203BA3",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00203E27",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020400A",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020C6AB",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020CAE2",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020CC5A",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020CC62",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020D6AC",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00210197",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002118CA",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00218E80",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00218EBB",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00218F47",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0021ADA3",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0021DEE1",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0024007A",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00240733",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00244D09",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002454D3",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002454DF",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0024FF76",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00251D82",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002A091F",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002A0949",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002A2B9E",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AAFEA",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AC102",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD270",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD478",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD56A",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD594",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD59C",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD6D3",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002AD7E7",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002ADA5E",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002ADA8A",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002ADB0E",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002EFFAA",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00300EBD",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00315F56",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x003200C8",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00322144",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00322559",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0032255B",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x003225B8",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x003225CB",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00324C14",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0032564D",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0032566A",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00325F41",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0032DA83",
+  "note": "Stub check round 2: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002AC34",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002ACD9",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002ACF9",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0002AD34",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A1621",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x000A166E",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0015013A",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00150155",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0015017E",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00150186",
+  "note": "Stub check round 3: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001501B8",
+  "note": "Stub check round 3: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A1CBA",
+  "note": "Stub check round 3: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A2244",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A2268",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A2280",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A22A3",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A22D0",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A2300",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A24D1",
+  "note": "Stub check round 3: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x002011D5",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00203E74",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020CAE8",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x0020CCA9",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00315FBA",
+  "note": "Stub check round 3: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A2A19",
+  "note": "Stub check round 4: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A2A3D",
+  "note": "Stub check round 4: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A2A55",
+  "note": "Stub check round 4: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00203F19",
+  "note": "Stub check round 4: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00315FC4",
+  "note": "Stub check round 4: code stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x001A2BA1",
+  "note": "Stub check round 5: BOUNDARY stub (real instruction start the lifter gave an empty body)"
+ },
+ {
+  "start": "0x00315FC6",
+  "note": "Stub check round 5: BOUNDARY stub (real instruction start the lifter gave an empty body)"
  }
 ]
