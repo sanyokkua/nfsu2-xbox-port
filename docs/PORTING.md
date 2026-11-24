@@ -197,6 +197,26 @@ cleanly on top of this repo's own handle lock (`d6e8046`, itself from CoS): the 
 3. **Learned stick range** (hppoa 8cfb709): not applicable. This port has no `stick_deadzone.h` and no fixed 0.65
    `RECOMP_STICK_RANGE` (the CoS change was never backported here), so steering is unchanged.
 
+## 12. Pushbuffer executor from PoA (hppoa 006d8a3, 2026-11-25, unreleased)
+
+The three executor changes only (`batch_is_ffp` no longer excludes inline batches; `SET_VERTEX_DATA4F(3)` diffuse; `prim_min_vertices`
+for point/line batches). The PoA debug aids (capture action, `[dl]` uv) were left out.
+
+**Proof it is safe here.** Scripted route (`RECOMP_PAD_PRESS` START every 2.5 s, `a` every 2.5 s from 21 s, 150 s, own HOME:
+boot, intro, menus, race grid with HUD) on the new binary, with and without `RECOMP_INLINE_FF=0`, plus temporary counters:
+- `batch_is_ffp()` was **never called** (0 calls in 150 s): every NFSU2 draw is a vertex program, so the changed rule has nothing to
+  act on. No 1- or 2-vertex batch was drawn and no `SET_VERTEX_DATA4F(3)` write happened. (Counters not committed.)
+- Frames at the same dump numbers: menu and HUD frames 300, 900, 1800, 2100 differ by 0.0-0.3 % of pixels between the two
+  runs. From the race on, runs differ by up to 20-45 % **between two identical new-binary runs as well**: the race is not
+  deterministic in time (camera pose and lap-time digits differ), so those frames cannot be compared pixel by pixel.
+- Same-state check: a build that used the new rule on odd flips and the old rule on even flips (temporary) over one run;
+  stationary race frames 6321 (odd) and 6622 (even) differ only in the lap-time digits, the flashing red arrows and a far car (animation);
+  HUD, map, speedometer and the 2D layers are identical. No stale-matrix 2D movement anywhere.
+- Smoke OK (75 s, 7 frames, last mean 45).
+
+Not covered: the pause menu (the START presses of the route did not reach it) and online/other modes. The change cannot
+reach any path the route did not either, since NFSU2 draws no fixed-function batch at all.
+
 ## Pitfalls (each cost a run)
 
 - **zsh doesn't split `$VAR` into words:** `AM="git am -q"; $AM p` is "command not found". Use a function.
