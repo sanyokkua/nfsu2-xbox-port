@@ -196,6 +196,20 @@ NTSTATUS __stdcall xbox_ExQueryNonVolatileSetting(
         }
         break;
 
+    case 0x103:
+        /* XC_FACTORY_AV_REGION: NTSC-M (0x00400100). XGetVideoStandard returns
+         * its second byte (1 = NTSC-M). Unanswered it was 0 and a title that
+         * reads it at renderer init kept a PAL frame floor (PoA: 40 ms game
+         * step instead of 33 ms). Fixed to NTSC-M: the vendored kernel is not
+         * built with NFSU2_REGION_PAL, so a PAL disc would need its own value
+         * (PAL-I 0x00800300) passed in. */
+        if (ValueLength >= sizeof(ULONG)) {
+            *(PULONG)Value = 0x00400100;
+            if (Type) *Type = 4;
+            if (ResultLength) *ResultLength = sizeof(ULONG);
+        }
+        break;
+
     case XC_MISC:
         /* Misc flags: 0 = no special flags */
         if (ValueLength >= sizeof(ULONG)) {
