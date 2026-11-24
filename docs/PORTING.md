@@ -168,6 +168,20 @@ cleanly on top of this repo's own handle lock (`d6e8046`, itself from CoS): the 
   scripted race (START every 2.5 s, A every 2.5 s from 21 s, 100 s): clean exit, last frame in a race (lap 1/3); the same for
   120 s with `NFSU2_PAD_HOTPLUG_TEST=37`: 3586 rescans, clean exit, no abort, last frame mean 51. All in throwaway HOMEs.
 
+## 10. Backports from the Prisoner of Azkaban port (2026-11-24, unreleased)
+
+1. **Disassembler `_prune_data_call_targets`** (hppoa 7b59edc, 2 new tests; the 35 disasm tests pass). A function known only
+   as a call target and called only from outside every function is itself a body decoded out of data; its calls are no
+   longer a "real caller". Relift (`tools/relift.sh`, 196 s): `functions.json` has the same 20,634 starts before and after,
+   so nothing was dropped or added on this disc. 20,645 functions translated, 27 stubs, 0 real code, build OK.
+2. **`XC_FACTORY_AV_REGION` (0x103)** (hppoa c053b83): answered 0x00400100 (NTSC-M, `XGetVideoStandard` = 1). This port has
+   no region switch in the kernel: `NFSU2_REGION_PAL` is a compile definition set after `xboxrecomp` is added, so the
+   vendored kernel never sees it. The value is right for the NTSC-U disc; a PAL build would need PAL-I (0x00800300) passed in.
+3. **`tools/stubcheck.py` range** (hppoa 79c7af5): nothing to change. This script already takes every section named
+   `.text`, `D3D`, `XGRPH`, `XNET`, `XONLINE`, `DSOUND`, `XPP` and builds the range from the raw size, so zero fill past a
+   section's raw data is already data. Rerun on the fresh lift: 27 stubs, 0 real code, no seed added.
+4. **Smoke** (`tools/smoke.sh 75`, own HOME): OK, 6 frames, last frame mean 45.
+
 ## Pitfalls (each cost a run)
 
 - **zsh doesn't split `$VAR` into words:** `AM="git am -q"; $AM p` is "command not found". Use a function.

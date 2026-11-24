@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased
+
+Engine and tool fixes from the Harry Potter Prisoner of Azkaban port:
+
+- Disassembler: calls from bodies decoded out of data (a call target called only from outside every function) no longer
+  count as evidence for a function start. On this disc the result is unchanged (20,634 starts, none dropped or added).
+- Kernel: `ExQueryNonVolatileSetting` answers `XC_FACTORY_AV_REGION` (0x103) as NTSC-M (0x00400100); it was 0.
+  Only titles that call `XGetVideoStandard` see it.
+- `tools/stubcheck.py` already covered `.text` and every XDK code section of this XBE (by name and raw size, so zero fill
+  past a section's raw data is data); rerun: 27 stubs, 0 real code, no new seeds.
+
 ## 0.1.2 (2026-11-24)
 
 Engine fixes from the Harry Potter Chamber of Secrets port:
