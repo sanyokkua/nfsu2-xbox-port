@@ -828,12 +828,25 @@ static const VpOut *vp_vertex(uint32_t index)
     return o;
 }
 
-/* Is this batch transformed by the fixed-function unit? */
+/* Is this batch transformed by the fixed-function unit?
+ *
+ * hppoa-xbox-port: how the vertices arrive (arrays, INLINE_ARRAY, SET_VERTEX4F)
+ * does not change the transform: in fixed-function mode the NV2A transforms
+ * them all (D3D's pre-transformed XYZRHW vertices go through its pass-through
+ * vertex program instead). PoA draws its shadow fade mask (16x32, positions
+ * 0..1) with SET_VERTEX4F in fixed-function mode; taken as screen positions it
+ * covered one pixel, the mask stayed blank and character shadows fell on walls
+ * and ceilings. RECOMP_INLINE_FF=0: the old rule (inline batches untransformed). */
 static int batch_is_ffp(void)
 {
+    static int inline_ff = -1;
+    if (inline_ff < 0) {
+        const char *e = getenv("RECOMP_INLINE_FF");
+        inline_ff = !(e && *e == '0');
+    }
     return s_gpu.composite_set
         && (s_gpu.xform_mode & 3) != NV_XFORM_MODE_PROGRAM
-        && !s_gpu.inline_active;
+        && (inline_ff || !s_gpu.inline_active);
 }
 
 /* Attribute 0 as a screen position.
@@ -3345,12 +3358,21 @@ static void raw_batch(void)
     s_gpu.drawn_pitch = s_gpu.pitch;
 }
 
+/* hppoa-xbox-port: the fewest vertices that draw something -- one point, a
+ * line's two ends, a triangle's three. Inline and SET_VERTEX batches of fewer
+ * than three were dropped, and with them PoA's one-segment LINE_STRIP that
+ * closes its shadow fade mask. */
+static uint32_t prim_min_vertices(void)
+{
+    return s_gpu.prim == NV_PRIM_POINTS ? 1u : s_gpu.prim <= NV_PRIM_LINE_STRIP ? 2u : 3u;
+}
+
 static void raster_batch(void)
 {
     uint32_t before = s_gpu.tris_drawn;
 
     s_vp.gen++;
-    if (s_gpu.idx_count < 3)
+    if (s_gpu.idx_count < prim_min_vertices())
         return;
     if (s_backend && s_backend->draw_raw) {
         raw_batch();
@@ -3708,7 +3730,7 @@ static void draw_inline_array(void)
         goto out;
 
     count = (s_gpu.inline_count * 4) / vsize;
-    if (count < 3 || count > NV_MAX_INDICES)
+    if (count < prim_min_vertices() || count > NV_MAX_INDICES)
         goto out;
     for (a = 0; a < NV_VERTEX_ATTRS; a++)
         if (s_gpu.attr[a].size)
@@ -3746,7 +3768,7 @@ static void draw_immediate(void)
     VertexAttr saved[NV_VERTEX_ATTRS];
     uint32_t i;
 
-    if (s_gpu.imm_count < 3)
+    if (s_gpu.imm_count < prim_min_vertices())
         return;
 
     memcpy(saved, s_gpu.attr, sizeof saved);
@@ -3901,6 +3923,17 @@ static int imm_vertex_method(uint32_t method, uint32_t param)
                 imm_emit_vertex();
         } else if (attr == 9 && c < 2) {
             s_gpu.imm_tex[c] = v.f;
+        } else if (attr == 3) {
+            /* hppoa-xbox-port: diffuse as four floats (D3D SetVertexData4f,
+             * SET_VERTEX_DATA4F(3)); only the 4UB form was taken, so PoA's
+             * shadow fade mask (black top row and closing line) came out white. */
+            const float *d = s_gpu.attr_const[3];
+            uint32_t k, b[4];
+            for (k = 0; k < 4; k++) {
+                float x = d[k] < 0.0f ? 0.0f : d[k] > 1.0f ? 1.0f : d[k];
+                b[k] = (uint32_t)(x * 255.0f + 0.5f);
+            }
+            s_gpu.imm_diffuse = b[3] << 24 | b[0] << 16 | b[1] << 8 | b[2];   /* D3DCOLOR */
         }
         return 1;
     }
