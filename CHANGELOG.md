@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.2 (2026-11-24)
 
 Engine fixes from the Harry Potter Chamber of Secrets port:
 

@@ -105,7 +105,7 @@ out 90° off). The lifter now emits `recomp_ld_f80` / `recomp_st_f80` (`recomp_t
 test. NFSU2: 16 loads changed to `/* fld tbyte */`, no m80 stores. Relift, build, `tools/smoke.sh` and a scripted race
 (`RECOMP_PAD_PRESS=0x10,2500,200` plus `a` every 2.5 s from 21 s in `RECOMP_PAD_SCRIPT`) pass.
 
-## 8. Engine fixes from the Chamber of Secrets port (2026-11-23, not released)
+## 8. Engine fixes from the Chamber of Secrets port (2026-11-23, released in 0.1.2)
 
 From `hpcos-xbox-port` (its notes: XBOX360_PORTING_NOTES.md section 14), commits 459e9a8, 6804dcd, d6e8046, afa393e,
 dab3b89, bc9538e:
@@ -133,7 +133,7 @@ dab3b89, bc9538e:
   run, 0 failures); frame throughput as before. The runtime's own unit tests (`engine/xboxrecomp/tests/kernel_*`) need
   `pkg-config`, not installed on this Mac: not run.
 
-## 9. More from the Chamber of Secrets port: lifetimes, stub check, pad hotplug (2026-11-24, not released)
+## 9. More from the Chamber of Secrets port: lifetimes, stub check, pad hotplug (2026-11-24, released in 0.1.2)
 
 From `hpcos-xbox-port` `58773a1`, `33a2b93` (runtime), `6ce58e0` (stub check), `e64d110` (pads). Both runtime patches applied
 cleanly on top of this repo's own handle lock (`d6e8046`, itself from CoS): the next-fit allocation sits inside that lock.
