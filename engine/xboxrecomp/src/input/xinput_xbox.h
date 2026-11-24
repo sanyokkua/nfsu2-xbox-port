@@ -87,6 +87,9 @@ typedef struct XBOX_INPUT_CAPABILITIES {
  * Maps Xbox controller ports to XInput slots.
  */
 void xbox_InputInit(void);
+/* Host main thread (the one pumping SDL's events): open and close pads at start and on every
+ * controller add or remove. Once called, the game's thread no longer enumerates pads. */
+void xbox_input_rescan(void);
 
 /**
  * Get the state of a controller.

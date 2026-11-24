@@ -41,7 +41,6 @@ static const struct { uint64_t hash; int kind; } s_glyphs[] = {
 enum { F_OFF, F_XBOX, F_PS };
 static int s_mode = -1;                 /* -1 auto, else F_* */
 static volatile int s_family = F_XBOX;
-static int s_watch;
 static const char *s_dump;
 
 static int pad_family(void)
@@ -72,21 +71,11 @@ static void set_family(int f)
     }
 }
 
-static int SDLCALL on_event(void *u, SDL_Event *e)
+/* Host main thread, at start and on every controller add or remove (apple_main.c): sdl2-compat's
+ * device list has no lock, so the game's thread (texture uploads) must not enumerate pads. */
+void nfsu2_prompts_pads_changed(void)
 {
-    (void)u;
-    if (e->type == SDL_CONTROLLERDEVICEADDED || e->type == SDL_CONTROLLERDEVICEREMOVED)
-        set_family(pad_family());
-    return 0;
-}
-
-void nfsu2_prompts_poll(void)
-{
-    if (s_mode < 0 && !s_watch) {
-        s_watch = 1;
-        SDL_AddEventWatch(on_event, NULL);
-        set_family(pad_family());
-    }
+    set_family(pad_family());
 }
 
 /* The original's ring: alpha box, stroke width, colour. */
@@ -218,7 +207,6 @@ static const uint32_t *provide(const Nv2aTexInfo *ti, uint32_t *k)
     int family;
     if (ti->w != 32 || ti->h != 32)
         return NULL;
-    nfsu2_prompts_poll();
     family = s_mode >= 0 ? s_mode : s_family;
     if (family == F_OFF)
         return NULL;

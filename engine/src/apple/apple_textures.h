@@ -11,5 +11,5 @@ void nfsu2_tex_write_png(const char *path, const uint32_t *argb, uint32_t w, uin
 
 /* Button prompts for the connected pad (apple_prompts.m). */
 void nfsu2_prompts_init(void);
-void nfsu2_prompts_poll(void);
+void nfsu2_prompts_pads_changed(void);   /* host main thread only */
 #endif

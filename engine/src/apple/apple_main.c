@@ -27,6 +27,8 @@
 #include <unistd.h>
 
 #include <TargetConditionals.h>
+void xbox_input_rescan(void);   /* xinput_device.c */
+void nfsu2_prompts_pads_changed(void);   /* apple_prompts.m */
 #if !TARGET_OS_IPHONE
 #include <SDL_syswm.h>
 #include "apple_menu.h"
@@ -437,6 +439,8 @@ int main(int argc, char **argv)
 
 #if !TARGET_OS_IPHONE
     apple_keyboard_controllers_changed();   /* the keyboard as a pad (NFSU2_KEYBOARD=0: off) */
+    xbox_input_rescan();                    /* pads are opened and closed on this thread only */
+    nfsu2_prompts_pads_changed();           /* and only enumerated here (button glyphs) */
 #endif
     for (;;) {
         SDL_Event e;
@@ -452,6 +456,26 @@ int main(int argc, char **argv)
         if (!got_event) continue;
 #else
         overlay_main_tick();                    /* the menu's requests, held keys, the pad's release */
+        {   /* Dev: NFSU2_PAD_HOTPLUG_TEST=<ms> attaches and detaches a virtual pad that often,
+             * to test pad hotplug against the game's reads (the disconnect abort, 0.1.0). */
+            static int every = -1; static Uint64 next; static int idx = -1;
+            if (every < 0) { const char *h = getenv("NFSU2_PAD_HOTPLUG_TEST"); every = h ? atoi(h) : 0; }
+            if (every > 0 && SDL_GetTicks64() >= next) {
+                next = SDL_GetTicks64() + (Uint64)every;
+                if (idx < 0) {
+                    SDL_VirtualJoystickDesc d; SDL_zero(d);
+                    d.version = SDL_VIRTUAL_JOYSTICK_DESC_VERSION; d.type = SDL_JOYSTICK_TYPE_GAMECONTROLLER;
+                    d.naxes = SDL_CONTROLLER_AXIS_MAX; d.nbuttons = SDL_CONTROLLER_BUTTON_DPAD_RIGHT + 1;
+                    d.name = "Hotplug test";
+                    idx = SDL_JoystickAttachVirtualEx(&d);
+                } else {
+                    for (int i = 0; i < SDL_NumJoysticks(); i++)
+                        if (SDL_JoystickIsVirtual(i) && SDL_JoystickNameForIndex(i) &&
+                            !strcmp(SDL_JoystickNameForIndex(i), "Hotplug test")) { SDL_JoystickDetachVirtual(i); break; }
+                    idx = -1;
+                }
+            }
+        }
         if (!SDL_WaitEventTimeout(&e, overlay_is_open() ? 16 : 50)) continue;
 #endif
 #if !TARGET_OS_IPHONE
@@ -486,8 +510,11 @@ int main(int argc, char **argv)
             continue;
         }
         apple_keyboard_event(&e);
-        if (e.type == SDL_JOYDEVICEADDED || e.type == SDL_JOYDEVICEREMOVED)
+        if (e.type == SDL_JOYDEVICEADDED || e.type == SDL_JOYDEVICEREMOVED) {
             apple_keyboard_controllers_changed();
+            xbox_input_rescan();
+            nfsu2_prompts_pads_changed();
+        }
 #endif
     }
 }

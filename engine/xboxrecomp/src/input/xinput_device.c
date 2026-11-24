@@ -252,8 +252,20 @@ DWORD xbox_InputGetCapabilities(DWORD dwPort, DWORD dwFlags, XBOX_INPUT_CAPABILI
 /* ======================================================================== */
 
 #include <SDL.h>
+#include <pthread.h>
 
 static SDL_GameController *g_pads[XBOX_MAX_CONTROLLERS];
+
+/* Who enumerates the pads. sdl2-compat keeps the device list of SDL_NumJoysticks in one
+ * global with no lock ("this will break if you multithread it"), and SDL refreshes it
+ * itself while it turns a pad's add or remove into an event. A host that pumps SDL's
+ * events on its main thread (the Apple host) therefore opens and closes the pads there,
+ * through xbox_input_rescan(); the game's thread only reads the open pads, under
+ * g_pad_lock. Before: the game's thread re-scanned when a pad went away and freed that
+ * list a second time (the app aborted when a controller disconnected). Hosts that never
+ * call xbox_input_rescan() keep the old way: the game's thread scans once a second. */
+static pthread_mutex_t g_pad_lock = PTHREAD_MUTEX_INITIALIZER;
+static volatile int g_host_scans;
 static BOOL  g_controller_connected[XBOX_MAX_CONTROLLERS];
 static DWORD g_packet[XBOX_MAX_CONTROLLERS];
 
@@ -321,11 +333,40 @@ void xbox_InputInit(void)
     }
 }
 
+/* Host main thread: at start and whenever a controller is added or removed. */
+void xbox_input_rescan(void)
+{
+    pthread_mutex_lock(&g_pad_lock);
+    g_host_scans = 1;
+    for (int i = 0; i < XBOX_MAX_CONTROLLERS; i++)
+        if (g_pads[i] && !SDL_GameControllerGetAttached(g_pads[i])) {
+            SDL_GameControllerClose(g_pads[i]);
+            g_pads[i] = NULL;
+        }
+    xbox_InputInit();
+    for (int i = 0; i < XBOX_MAX_CONTROLLERS; i++)
+        if (g_pads[i])
+            fprintf(stderr, "  [INPUT] port %d: %s\n", i,
+                    SDL_GameControllerName(g_pads[i]) ? SDL_GameControllerName(g_pads[i]) : "controller");
+    pthread_mutex_unlock(&g_pad_lock);
+}
+
+static DWORD input_get_state(DWORD dwPort, XBOX_INPUT_STATE *pState);
+
 #if defined(__SWITCH__)
 #include "xinput_nx.h"
 #endif
 
 DWORD xbox_InputGetState(DWORD dwPort, XBOX_INPUT_STATE *pState)
+{
+    DWORD r;
+    pthread_mutex_lock(&g_pad_lock);
+    r = input_get_state(dwPort, pState);
+    pthread_mutex_unlock(&g_pad_lock);
+    return r;
+}
+
+static DWORD input_get_state(DWORD dwPort, XBOX_INPUT_STATE *pState)
 {
     if (dwPort >= XBOX_MAX_CONTROLLERS || !pState)
         return ERROR_DEVICE_NOT_CONNECTED;
@@ -357,7 +398,12 @@ DWORD xbox_InputGetState(DWORD dwPort, XBOX_INPUT_STATE *pState)
 #endif
 
     SDL_GameController *c = g_pads[dwPort];
-    if (!c || !SDL_GameControllerGetAttached(c)) {
+    if (g_host_scans) {                       /* the host opens and closes them */
+        if (!c || !SDL_GameControllerGetAttached(c)) {
+            g_controller_connected[dwPort] = FALSE;
+            return ERROR_DEVICE_NOT_CONNECTED;
+        }
+    } else if (!c || !SDL_GameControllerGetAttached(c)) {
         /* Nothing calls xbox_InputInit, and pads come and go (macOS also
          * reports them only some time after start): look again, at most
          * once a second per port. */
@@ -381,7 +427,8 @@ DWORD xbox_InputGetState(DWORD dwPort, XBOX_INPUT_STATE *pState)
         }
     }
 
-    SDL_GameControllerUpdate();
+    if (!g_host_scans)                        /* else the host's event pump updates them */
+        SDL_GameControllerUpdate();
     g_controller_connected[dwPort] = TRUE;
 
     memset(pState, 0, sizeof(XBOX_INPUT_STATE));
@@ -488,13 +535,18 @@ DWORD xbox_InputSetState(DWORD dwPort, const XBOX_VIBRATION *pVibration)
                        pVibration->wRightMotorSpeed);
     return ERROR_SUCCESS;
 #else
+    pthread_mutex_lock(&g_pad_lock);
     SDL_GameController *c = g_pads[dwPort];
-    if (!c) return ERROR_DEVICE_NOT_CONNECTED;
+    if (!c) {
+        pthread_mutex_unlock(&g_pad_lock);
+        return ERROR_DEVICE_NOT_CONNECTED;
+    }
 
     /* SDL rumble needs a duration; refresh for ~1s on each call (the game
      * polls vibration continuously). */
     SDL_GameControllerRumble(c, pVibration->wLeftMotorSpeed,
                              pVibration->wRightMotorSpeed, 1000);
+    pthread_mutex_unlock(&g_pad_lock);
     return ERROR_SUCCESS;
 #endif
 }
