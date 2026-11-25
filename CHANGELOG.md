@@ -1,27 +1,28 @@
 # Changelog
 
-## Unreleased
+## 0.1.3 (2026-11-25)
 
-Engine and tool fixes from the Harry Potter Prisoner of Azkaban port:
+Engine and tool fixes from the Harry Potter Prisoner of Azkaban and Chamber of Secrets ports. For players: the first
+launch of a scene compiles its shaders about 3 times faster (fewer hitches), the renderer follows the original Xbox more
+closely, and the build is checked more strictly. In a menu-to-race route on this game none of the rendering fixes changes
+what you see; they matter for other titles on the same engine.
 
-- Disassembler: calls from bodies decoded out of data (a call target called only from outside every function) no longer
-  count as evidence for a function start. On this disc the result is unchanged (20,634 starts, none dropped or added).
-- Kernel: `ExQueryNonVolatileSetting` answers `XC_FACTORY_AV_REGION` (0x103) as NTSC-M (0x00400100); it was 0.
-  Only titles that call `XGetVideoStandard` see it.
-- Metal: shaders compile as MSL 3.0 (`RECOMP_MTL_LANG=<major>.<minor>` overrides, `0` = Metal's default, which is 4.0 here).
-  First-seen programs compile about 3x faster (smoke: 3 programs 194 ms -> 57 ms). The `[hitch]` line also counts pipelines.
-- Metal: P8 textures are hashed byte by byte (the sampled hash missed changes); polygon offset slope is scaled by the
-  render scale (`RECOMP_MTL_ZSLOPE=0` off). Neither occurs in a menu-to-race route here.
-- Metal: depth is clamped per pixel, not per vertex (`RECOMP_MTL_ZCLAMP_PIXEL=0` = old); pixels outside the clip range
-  are dropped in CULL mode (`RECOMP_MTL_ZCULL=0` off; skipped with the W-buffer flag). Stencil op 0 is ZERO, not KEEP
-  (`RECOMP_MTL_STENCIL_ZERO=0`). Alpha test compares rounded 8-bit alpha (`RECOMP_ATEST_ROUND=0`). Fixed-function
-  lighting no longer flips normals facing away (`RECOMP_FF_FLIP_NORMALS=1` = old). `RECOMP_GL_DUMP_SURF=<va,..>` dumps targets.
-  In a menu-to-race route here the stencil-0 case and fixed-function lighting never occur, and the clip range is always the
-  full 0..zmax; no visible change.
-- `tools/immscan.py` and `tools/seedcheck.py`: find missed functions referenced only by an immediate. The 3 hits on this
-  disc are not function starts; no seeds.
-- `tools/stubcheck.py` already covered `.text` and every XDK code section of this XBE (by name and raw size, so zero fill
-  past a section's raw data is data); rerun: 27 stubs, 0 real code, no new seeds.
+- Faster: shaders compile as MSL 3.0, so a program seen for the first time compiles about 3x faster (3 programs: 194 ms ->
+  57 ms). `RECOMP_MTL_LANG=<major>.<minor>` overrides; `0` = Metal's default. The `[hitch]` log line also counts pipelines.
+- Graphics, closer to the Xbox: depth is clamped per pixel (not per vertex) and pixels outside the clip range are dropped;
+  the polygon offset slope follows the render scale; stencil op 0 is ZERO, not KEEP; the alpha test compares rounded 8-bit
+  alpha; lighting no longer flips normals facing away; P8 textures are hashed byte by byte, so a changed palette texture is
+  never missed. Each has an off switch (`RECOMP_MTL_ZCLAMP_PIXEL=0`, `RECOMP_MTL_ZCULL=0`, `RECOMP_MTL_ZSLOPE=0`,
+  `RECOMP_MTL_STENCIL_ZERO=0`, `RECOMP_ATEST_ROUND=0`, `RECOMP_FF_FLIP_NORMALS=1`).
+- Graphics: draws with vertex data pushed inline (immediate-mode style) now also work in fixed-function mode.
+- Console info: the game is told the video standard is NTSC-M (it read 0 before); only titles that ask see it.
+- Safer build: the function finder no longer counts calls from code decoded out of data as proof of a function start (no
+  change on this disc: 20,634 functions). New tools `immscan.py` and `seedcheck.py` look for missed functions; on this
+  disc there are none. `stubcheck.py` was rerun over every code section: 27 stubs, no real code.
+- Debug: `RECOMP_GL_DUMP_SURF=<va,..>` dumps named render targets.
+- Not ported: the learned stick range and texture-coordinate generation (CoS/PoA features this game does not use).
+- Everything else as in 0.1.2. Installed an earlier version? Open the new installer and choose **Rebuild**: it does not ask
+  for the disc again, and your saves and settings stay.
 
 ## 0.1.2 (2026-11-24)
 

@@ -168,7 +168,7 @@ cleanly on top of this repo's own handle lock (`d6e8046`, itself from CoS): the 
   scripted race (START every 2.5 s, A every 2.5 s from 21 s, 100 s): clean exit, last frame in a race (lap 1/3); the same for
   120 s with `NFSU2_PAD_HOTPLUG_TEST=37`: 3586 rescans, clean exit, no abort, last frame mean 51. All in throwaway HOMEs.
 
-## 10. Backports from the Prisoner of Azkaban port (2026-11-24, unreleased)
+## 10. Backports from the Prisoner of Azkaban port (2026-11-24, released in 0.1.3)
 
 1. **Disassembler `_prune_data_call_targets`** (hppoa 7b59edc, 2 new tests; the 35 disasm tests pass). A function known only
    as a call target and called only from outside every function is itself a body decoded out of data; its calls are no
@@ -182,7 +182,7 @@ cleanly on top of this repo's own handle lock (`d6e8046`, itself from CoS): the 
    section's raw data is already data. Rerun on the fresh lift: 27 stubs, 0 real code, no seed added.
 4. **Smoke** (`tools/smoke.sh 75`, own HOME): OK, 6 frames, last frame mean 45.
 
-## 11. More PoA backports (2026-11-24, unreleased)
+## 11. More PoA backports (2026-11-24, released in 0.1.3)
 
 1. **MSL 3.0** (hppoa b85ffa1). `s_copts.languageVersion` = 3.0, `RECOMP_MTL_LANG` overrides, the hitch line counts pipelines. Two
    `tools/smoke.sh 75` runs on fresh HOMEs, same binary: log says `shader language 3.0` (4.0 with `RECOMP_MTL_LANG=0`),
@@ -197,7 +197,7 @@ cleanly on top of this repo's own handle lock (`d6e8046`, itself from CoS): the 
 3. **Learned stick range** (hppoa 8cfb709): not applicable. This port has no `stick_deadzone.h` and no fixed 0.65
    `RECOMP_STICK_RANGE` (the CoS change was never backported here), so steering is unchanged.
 
-## 12. Pushbuffer executor from PoA (hppoa 006d8a3, 2026-11-25, unreleased)
+## 12. Pushbuffer executor from PoA (hppoa 006d8a3, 2026-11-25, released in 0.1.3)
 
 The three executor changes only (`batch_is_ffp` no longer excludes inline batches; `SET_VERTEX_DATA4F(3)` diffuse; `prim_min_vertices`
 for point/line batches). The PoA debug aids (capture action, `[dl]` uv) were left out.
@@ -217,7 +217,7 @@ boot, intro, menus, race grid with HUD) on the new binary, with and without `REC
 Not covered: the pause menu (the START presses of the route did not reach it) and online/other modes. The change cannot
 reach any path the route did not either, since NFSU2 draws no fixed-function batch at all.
 
-## 13. Shared-renderer fixes from PoA (hppoa b010ad5, 918dac2; 2026-11-25, unreleased)
+## 13. Shared-renderer fixes from PoA (hppoa b010ad5, 918dac2; 2026-11-25, released in 0.1.3)
 
 1. **P8 hash** (`bytes_hash_all` in `tex_get`): applied. `RECOMP_TEX_CHANGES=1` over the 150 s route (boot, menus, race grid)
    logged 348 texture changes in formats 12, 06 and 19 only: no P8 (0x0B) texture is used, so no visible change.
@@ -246,7 +246,7 @@ Smoke OK after the build (75 s). The route logs had no "texgen ... not generated
   with them on (none).
 - **`apple_main.c` declares `s_win` after `set_full`:** functions for the Settings window that use it go after that declaration.
 
-## 14. Round 5 backport (PoA xemu audit, 5ef50c3..66ff266)
+## 14. Round 5 backport (PoA xemu audit, 5ef50c3..66ff266) (released in 0.1.3)
 
 Five renderer fixes, each behind an env var (see CHANGELOG). `nv2a_clip` no longer clamps z per vertex (`VsU.u_clampv`);
 `vZw` carries unclamped z/zmax and w to the fragment shader for the clip-range cull (`FsU.u_zcull`; skipped when
