@@ -1771,8 +1771,14 @@ static int lit_color(uint32_t index, float out[4])
      * equal to the front one.
      * ponytail: per vertex, not per face; exact for flat ground, a vertex on
      * a silhouette may pick the other side. */
-    if (n[0] * e[0] + n[1] * e[1] + n[2] * e[2] > 0.0f) {
-        n[0] = -n[0]; n[1] = -n[1]; n[2] = -n[2];
+    {   /* hppoa (xemu audit finding 3): the NV2A has no such flip (xemu vsh-ff.c lights the stored normal);
+         * on closed meshes it lit silhouette vertices facing away from the camera as if they faced it.
+         * RECOMP_FF_FLIP_NORMALS=1 keeps the flip (X-Men Legends' streets); default here: off. */
+        static int flip = -1;
+        if (flip < 0) { const char *f = getenv("RECOMP_FF_FLIP_NORMALS"); flip = f && *f == '1'; }
+        if (flip && n[0] * e[0] + n[1] * e[1] + n[2] * e[2] > 0.0f) {
+            n[0] = -n[0]; n[1] = -n[1]; n[2] = -n[2];
+        }
     }
 
     out[0] = reg_f(0x0A10); out[1] = reg_f(0x0A14); out[2] = reg_f(0x0A18);
