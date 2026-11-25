@@ -3393,6 +3393,12 @@ static void mtl_draw_raw_inner(const Nv2aRawBatch *b)
         vb.aa[0] = b->aa_sx > 0 ? b->aa_sx : 1.0f;
         vb.aa[1] = b->aa_sy > 0 ? b->aa_sy : 1.0f;
         vb.xform = b->xform == 1 ? 1 : 0;
+        {   /* hppoa play test 3: depth is clamped per pixel (MTLDepthClipModeClamp), not per vertex
+             * (nv2a_metal_msl.c nv2a_clip). RECOMP_MTL_ZCLAMP_PIXEL=0: the old per-vertex clamp. */
+            static int vc = -1;
+            if (vc < 0) { const char *e = getenv("RECOMP_MTL_ZCLAMP_PIXEL"); vc = e && *e == '0'; }
+            vb.clampv = vc;
+        }
         if (!s_vs_valid || memcmp(&vb, &s_vs_cur, sizeof vb)) {
             [s_enc setVertexBytes:&vb length:sizeof vb atIndex:NV2A_MSL_VS_BLOCK];
             s_vs_cur = vb;
@@ -3421,6 +3427,19 @@ static void mtl_draw_raw_inner(const Nv2aRawBatch *b)
             }
         }
         memset(&fb, 0, sizeof fb);
+        {   /* hppoa: SET_ZMIN_MAX_CONTROL ZCLAMP_EN = CULL (bits 4-7 = 0): pixels outside the clip range
+             * (SET_CLIP_MIN/MAX) are dropped (xemu glsl/psh.c). Not with the W-buffer (not emulated here).
+             * RECOMP_MTL_ZCULL=0: off (depth only clamped, as before). */
+            static int zc = -1;
+            if (zc < 0) { const char *e = getenv("RECOMP_MTL_ZCULL"); zc = !(e && *e == '0'); }
+            if (zc && !(r[0x290 / 4] & 0x10000u) && !(r[0x1D78 / 4] & 0xF0u)) {
+                float cmin, cmax, zm = (float)zmax_of(r);
+                memcpy(&cmin, &r[0x394 / 4], 4); memcpy(&cmax, &r[0x398 / 4], 4);
+                if (cmax > cmin) {
+                    fb.zcull[0] = 1.0f; fb.zcull[1] = cmin / zm; fb.zcull[2] = cmax / zm;
+                }
+            }
+        }
         for (i = 0; i < 4; i++) {
             fb.tscale[i][0] = tscale[i][0];
             fb.tscale[i][1] = tscale[i][1];

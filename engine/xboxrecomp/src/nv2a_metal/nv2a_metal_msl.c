@@ -72,6 +72,7 @@ static const char s_vs_head[] =
     "    float2 u_aa;\n"
     "    int u_xform;\n"
     "    float u_snap_y;\n"
+    "    int u_clampv;\n"                 /* RECOMP_MTL_ZCLAMP_PIXEL=0: the old per-vertex depth clamp */
     "};\n"
     "struct VIn {\n"
     "    float4 v0 [[attribute(0)]];   float4 v1 [[attribute(1)]];\n"
@@ -96,6 +97,7 @@ static const char s_vs_head[] =
     "    float4 vD0; float4 vD1;\n"
     "    float4 vT0; float4 vT1; float4 vT2; float4 vT3;\n"
     "    float vFog;\n"
+    "    float2 vZw;\n"               /* z / zmax and w, unclamped: the clip-range cull (FsU u_zcull) */
     "    float psize [[point_size, function_constant(nv2a_points)]];\n"
     "};\n"
     /* gl_vsh.c's NV2A_SNAP_GLSL and Vulkan nv2a_clip, with y negated: real
@@ -120,8 +122,13 @@ static const char s_vs_head[] =
     "static float4 nv2a_clip(constant VsU& U, float3 sw, float w) {\n"
     "    float z = sw.z * U.u_surf.z;\n"
     "    sw.xy = nv2a_snap(U, sw.xy, w);\n"
+    /* Depth is clamped per pixel (the encoder's MTLDepthClipModeClamp), as on the NV2A and in
+     * xemu (depth clamp, glsl/psh.c clipRange), never per vertex: clamping one vertex of a triangle
+     * that crosses the near or far plane tilts the depth of the whole triangle, and coplanar meshes
+     * with other vertices (a rug on a floor) then cut each other along triangle edges (hppoa play
+     * test 3). u_clampv != 0 (RECOMP_MTL_ZCLAMP_PIXEL=0) brings the old vertex clamp back. */
     "    return float4(sw.x * U.u_surf.x - w, w - sw.y * U.u_surf.y,\n"
-    "                  w > 0.0 ? clamp(z, 0.0, w) : z, w);\n"
+    "                  (U.u_clampv != 0 && w > 0.0) ? clamp(z, 0.0, w) : z, w);\n"
     "}\n";
 
 /* The register file and ILU helpers of gl_vsh.c's prelude, as members. */
@@ -171,6 +178,7 @@ static const char s_vs_main_program[] =
     "    float w = abs(s.oPos.w) < 1e-6 ? 1e-6 : s.oPos.w;\n"
     "    float3 sc = float3(s.oPos.xy * U.u_aa, s.oPos.z);\n"
     "    o.pos = nv2a_clip(U, sc * w, w);\n"
+    "    o.vZw = float2(s.oPos.z * w * U.u_surf.z, w);\n"
     "    o.vD0 = clamp(s.oD0, 0.0, 1.0); o.vD1 = clamp(s.oD1, 0.0, 1.0);\n"
     "    o.vT0 = s.oT0; o.vT1 = s.oT1; o.vT2 = s.oT2; o.vT3 = s.oT3; o.vFog = s.oFog.x;\n"
     "    if (nv2a_points) o.psize = 1.0;\n"
@@ -189,9 +197,11 @@ static const char s_vs_main_fixed[] =
     "        float3 sw = clip.xyz + U.u_vpoff.xyz * w;\n"
     "        sw.xy *= U.u_aa;\n"
     "        o.pos = nv2a_clip(U, sw, w);\n"
+    "        o.vZw = float2(sw.z * U.u_surf.z, w);\n"
     "    } else {\n"
     "        float w = (in.v0.w > 0.0) ? 1.0 / in.v0.w : 1.0;\n"
     "        o.pos = nv2a_clip(U, in.v0.xyz * w, w);\n"
+    "        o.vZw = float2(in.v0.z * w * U.u_surf.z, w);\n"
     "    }\n"
     "    o.vD0 = clamp(in.v3, 0.0, 1.0); o.vD1 = clamp(in.v4, 0.0, 1.0);\n"
     "    o.vT0 = in.v9; o.vT1 = in.v10; o.vT2 = in.v11; o.vT3 = in.v12; o.vFog = 0.0;\n"
@@ -288,6 +298,7 @@ int nv2a_msl_fragment(const Nv2aPshKey *k, char *buf, size_t cap)
         "    float4 u_fogcolor;\n"
         "    int u_alpha_func; float u_alpha_ref;\n"
         "    float2 u_pad_; float4 u_bc[4]; int4 u_bm;\n"
+        "    float4 u_zcull;\n"
         "};\n"
         /* Border addressing (mode 4) with the stage's own colour: Metal's samplers only have
          * black or white borders. CoS clears its character shadow map to grey and gives it a
@@ -306,6 +317,7 @@ int nv2a_msl_fragment(const Nv2aPshKey *k, char *buf, size_t cap)
         "    float4 vD0; float4 vD1;\n"
         "    float4 vT0; float4 vT1; float4 vT2; float4 vT3;\n"
         "    float vFog;\n"
+        "    float2 vZw;\n"
         "};\n"
         "fragment float4 nv2a_fs(FIn in [[stage_in]],\n"
         "                        constant FsU& F [[buffer(0)]]");
@@ -335,6 +347,14 @@ int nv2a_msl_fragment(const Nv2aPshKey *k, char *buf, size_t cap)
     memcpy(o.p, body, len);
     o.p += len;
     o.left -= len;
+    /* SET_ZMIN_MAX_CONTROL CULL (xemu glsl/psh.c "Depth clipping"): a pixel whose depth is outside the
+     * clip range is dropped, as on the NV2A, not clamped onto the near or far plane. A mesh the camera is
+     * inside is cut away instead of filling the screen at depth 0. u_zcull: x on, y/z the clip range over
+     * zmax (nv2a_metal.m, RECOMP_MTL_ZCULL). */
+    emit(&o, "    if (F.u_zcull.x > 0.5 && in.vZw.y > 0.0) {\n"
+             "        float zc_ = in.vZw.x / in.vZw.y;\n"
+             "        if (zc_ < F.u_zcull.y || zc_ > F.u_zcull.z) discard_fragment();\n"
+             "    }\n");
     emit(&o, "    return fragColor;\n}\n");
     return o.overflow ? -1 : (int)(cap - o.left);
 }

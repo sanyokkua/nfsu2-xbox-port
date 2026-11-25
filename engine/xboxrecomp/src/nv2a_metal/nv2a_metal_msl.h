@@ -28,6 +28,8 @@ typedef struct {
     float   aa[2];              /* logical -> real pixels */
     int32_t xform;              /* 1 fixed-function, 0 pre-transformed */
     float   snap_y;             /* nv2a_snap's offset for y; surf[3] is x's */
+    int32_t clampv;             /* 1: clamp depth per vertex (RECOMP_MTL_ZCLAMP_PIXEL=0) */
+    int32_t pad_[3];            /* MSL pads VsU to 16 bytes */
 } Nv2aMslVs;
 
 typedef struct {
@@ -40,6 +42,7 @@ typedef struct {
     float   pad[2];
     float   bc[4][4];           /* hpcos-xbox-port: SET_TEXTURE_BORDER_COLOR per stage (r g b a) */
     int32_t bm[4];              /* border addressing per stage: bit 0 s, bit 1 t (mode 4) */
+    float   zcull[4];           /* hppoa: clip-range cull on (1), clip min / zmax, clip max / zmax */
 } Nv2aMslFs;
 
 /* Vertex shader for a vertex program (prog != NULL: slots from `start` to
