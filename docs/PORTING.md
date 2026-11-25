@@ -217,6 +217,17 @@ boot, intro, menus, race grid with HUD) on the new binary, with and without `REC
 Not covered: the pause menu (the START presses of the route did not reach it) and online/other modes. The change cannot
 reach any path the route did not either, since NFSU2 draws no fixed-function batch at all.
 
+## 13. Shared-renderer fixes from PoA (hppoa b010ad5, 918dac2; 2026-11-25, unreleased)
+
+1. **P8 hash** (`bytes_hash_all` in `tex_get`): applied. `RECOMP_TEX_CHANGES=1` over the 150 s route (boot, menus, race grid)
+   logged 348 texture changes in formats 12, 06 and 19 only: no P8 (0x0B) texture is used, so no visible change.
+2. **Polygon offset slope x render scale** (`apply_dynamic`, `RECOMP_MTL_ZSLOPE=0` off): applied. The route (400 % scale)
+   never logged "polygon offset in use", so no draw takes it and on/off are identical here; it only matters if a draw sets one.
+3. **Texgen modes 0x8512/0x8511/0x2402**: not applicable. This port's Metal back end has no fixed-function texgen at all (no
+   `u_tg`, no "not generated" warning; every draw is a vertex program), so there is nothing to extend. Not taken.
+   The PoA-only `skin_second_layer` was left out as asked.
+Smoke OK after the build (75 s). The route logs had no "texgen ... not generated" lines before or after.
+
 ## Pitfalls (each cost a run)
 
 - **zsh doesn't split `$VAR` into words:** `AM="git am -q"; $AM p` is "command not found". Use a function.

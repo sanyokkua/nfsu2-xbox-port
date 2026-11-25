@@ -10,6 +10,8 @@ Engine and tool fixes from the Harry Potter Prisoner of Azkaban port:
   Only titles that call `XGetVideoStandard` see it.
 - Metal: shaders compile as MSL 3.0 (`RECOMP_MTL_LANG=<major>.<minor>` overrides, `0` = Metal's default, which is 4.0 here).
   First-seen programs compile about 3x faster (smoke: 3 programs 194 ms -> 57 ms). The `[hitch]` line also counts pipelines.
+- Metal: P8 textures are hashed byte by byte (the sampled hash missed changes); polygon offset slope is scaled by the
+  render scale (`RECOMP_MTL_ZSLOPE=0` off). Neither occurs in a menu-to-race route here.
 - `tools/immscan.py` and `tools/seedcheck.py`: find missed functions referenced only by an immediate. The 3 hits on this
   disc are not function starts; no seeds.
 - `tools/stubcheck.py` already covered `.text` and every XDK code section of this XBE (by name and raw size, so zero fill
