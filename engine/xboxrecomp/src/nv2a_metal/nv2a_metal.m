@@ -4065,6 +4065,16 @@ static void mtl_flip_inner(void)
                 char path[320];
                 snprintf(path, sizeof path, "%sat%05u.bmp", dump_prefix[0] ? dump_prefix : "f", s_frame);
                 dump_surface(s, path);
+                for (const char *e = getenv("RECOMP_GL_DUMP_SURF"); e && *e; ) {   /* hppoa: the targets too */
+                    uint32_t va = (uint32_t)strtoul(e, NULL, 16);
+                    MtSurf *t = surf_find(va);
+                    if (t && t->tex) {
+                        snprintf(path, sizeof path, "%sat%05u_%08X.bmp", dump_prefix[0] ? dump_prefix : "f", s_frame, va);
+                        dump_surface(t, path);
+                    }
+                    e = strchr(e, ',');
+                    if (e) e++;
+                }
                 s_ft_dumped = 1;
                 left--;
             }
