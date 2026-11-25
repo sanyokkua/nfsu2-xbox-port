@@ -12,6 +12,12 @@ Engine and tool fixes from the Harry Potter Prisoner of Azkaban port:
   First-seen programs compile about 3x faster (smoke: 3 programs 194 ms -> 57 ms). The `[hitch]` line also counts pipelines.
 - Metal: P8 textures are hashed byte by byte (the sampled hash missed changes); polygon offset slope is scaled by the
   render scale (`RECOMP_MTL_ZSLOPE=0` off). Neither occurs in a menu-to-race route here.
+- Metal: depth is clamped per pixel, not per vertex (`RECOMP_MTL_ZCLAMP_PIXEL=0` = old); pixels outside the clip range
+  are dropped in CULL mode (`RECOMP_MTL_ZCULL=0` off; skipped with the W-buffer flag). Stencil op 0 is ZERO, not KEEP
+  (`RECOMP_MTL_STENCIL_ZERO=0`). Alpha test compares rounded 8-bit alpha (`RECOMP_ATEST_ROUND=0`). Fixed-function
+  lighting no longer flips normals facing away (`RECOMP_FF_FLIP_NORMALS=1` = old). `RECOMP_GL_DUMP_SURF=<va,..>` dumps targets.
+  In a menu-to-race route here the stencil-0 case and fixed-function lighting never occur, and the clip range is always the
+  full 0..zmax; no visible change.
 - `tools/immscan.py` and `tools/seedcheck.py`: find missed functions referenced only by an immediate. The 3 hits on this
   disc are not function starts; no seeds.
 - `tools/stubcheck.py` already covered `.text` and every XDK code section of this XBE (by name and raw size, so zero fill

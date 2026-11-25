@@ -245,3 +245,12 @@ Smoke OK after the build (75 s). The route logs had no "texgen ... not generated
 - **`nv2a_metal` is built with `-Wno-unguarded-availability`:** "no availability warnings for macOS 15" needed a compile of it
   with them on (none).
 - **`apple_main.c` declares `s_win` after `set_full`:** functions for the Settings window that use it go after that declaration.
+
+## 14. Round 5 backport (PoA xemu audit, 5ef50c3..66ff266)
+
+Five renderer fixes, each behind an env var (see CHANGELOG). `nv2a_clip` no longer clamps z per vertex (`VsU.u_clampv`);
+`vZw` carries unclamped z/zmax and w to the fragment shader for the clip-range cull (`FsU.u_zcull`; skipped when
+CONTROL0 bit 16 is set, since this port has no W-buffer). Verified: build, `tools/smoke.sh 75` OK, 150 s scripted route
+with all five off vs on: both render correctly; byte compares are useless (the route diverges run to run, even new vs new).
+Temporary counters showed that stencil op 0 and `lit_color` (fixed-function lighting) never run on that route and
+SET_CLIP_MIN/MAX is always 0..zmax, so these are no-ops for NFSU2 as played; the shader plumbing is exercised by every draw.
