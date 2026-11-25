@@ -2654,7 +2654,7 @@ static int s_zb_seen;
 
 /* Returns 0 when the draw shows nothing (front-and-back culled triangles:
  * Metal has no such cull mode). */
-static int apply_dynamic(const uint32_t *r, int has_depth, uint32_t cls)
+static int apply_dynamic(const uint32_t *r, int has_depth, uint32_t cls, float slope_k)
 {
     DynState d;
     memset(&d, 0, sizeof d);
@@ -2684,6 +2684,19 @@ static int apply_dynamic(const uint32_t *r, int has_depth, uint32_t cls)
         if (zb && has_depth && cls == 2 && r[0x338 / 4]) {
             d.zb_on = 1;
             d.zb_scale = r[0x384 / 4];
+            /* Metal's slope term is per pixel of the target, the NV2A's per pixel of the title's surface;
+             * at a render scale of k the target's slope is k times smaller, so the factor is k times larger
+             * (hppoa: a rug cut near the camera). RECOMP_MTL_ZSLOPE=0 keeps the factor as the title set it. */
+            {
+                static int zs = -1;
+                if (zs < 0) { const char *e = getenv("RECOMP_MTL_ZSLOPE"); zs = !(e && *e == '0'); }
+                if (zs && slope_k > 1.0f) {
+                    float a;
+                    memcpy(&a, &d.zb_scale, 4);
+                    a *= slope_k;
+                    memcpy(&d.zb_scale, &a, 4);
+                }
+            }
             d.zb_bias = r[0x388 / 4];
             if (zmax_of(r) == 0xFFFFu) {
                 float b;
@@ -2695,7 +2708,7 @@ static int apply_dynamic(const uint32_t *r, int has_depth, uint32_t cls)
                 float a, b;
                 memcpy(&a, &d.zb_scale, 4);
                 memcpy(&b, &d.zb_bias, 4);
-                fprintf(stderr, "[mtl] polygon offset in use (scale %.3f, bias %.1f)\n", a, b);
+                fprintf(stderr, "[mtl] polygon offset in use (scale %.3f, bias %.1f; target scale %.2f)\n", a, b, slope_k);
                 s_zb_seen = 1;
             }
         }
@@ -3356,7 +3369,7 @@ static void mtl_draw_raw_inner(const Nv2aRawBatch *b)
     s_pd_draw = 0;
     if (dp && s_pd_idx >= 0 && (r[0x30C / 4] || r[0x35C / 4] || r[0x32C / 4]))
         s_pd[s_frame & 1][s_pd_idx].used = 1;
-    if (!apply_dynamic(r, dp != NULL, cls))
+    if (!apply_dynamic(r, dp != NULL, cls, s->w ? (float)s->pw / (float)s->w : 1.0f))
         return;
     s->gen++;
     if (pipe != s_cur_pipe) {
