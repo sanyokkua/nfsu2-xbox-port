@@ -2601,7 +2601,13 @@ static MTLStencilOperation stencil_op(uint32_t v)
     case 0x150A: return MTLStencilOperationInvert;
     case 0x8507: return MTLStencilOperationIncrementWrap;
     case 0x8508: return MTLStencilOperationDecrementWrap;
-    default: return MTLStencilOperationKeep;    /* KEEP, and 0 (never set) */
+    case 0: {   /* NV097_SET_STENCIL_OP_V_ZERO (xemu pgraph.c, nv2a_regs.h); D3D writes KEEP (0x1E00) by
+                 * default, so 0 is a real ZERO. RECOMP_MTL_STENCIL_ZERO=0: KEEP as before (hppoa audit 5). */
+        static int z = -1;
+        if (z < 0) { const char *e = getenv("RECOMP_MTL_STENCIL_ZERO"); z = !(e && *e == '0'); }
+        return z ? MTLStencilOperationZero : MTLStencilOperationKeep;
+    }
+    default: return MTLStencilOperationKeep;    /* KEEP (0x1E00) */
     }
 }
 
