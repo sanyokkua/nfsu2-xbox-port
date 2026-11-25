@@ -27,6 +27,7 @@
 
 #include <stdarg.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 
 typedef struct {
@@ -358,9 +359,13 @@ static int psh_emit(const Nv2aPshKey *k, char *buf, size_t cap, int alpha_test)
         emit(&o, "    fragColor = vec4(fA * fB + (1.0 - fA) * fC + fD, fG);\n");
     }
     emit(&o, "    fragColor = clamp(fragColor, 0.0, 1.0);\n");
-    if (alpha_test)
+    if (alpha_test) {
+    /* hppoa (xemu audit 8): the NV2A compares the 8-bit alpha, xemu psh.c int(round(a * 255)); an unrounded
+     * float let alpha under 0.5/255 pass GREATER 0 (thin opaque fringes). RECOMP_ATEST_ROUND=0: as before. */
+    static int rnd = -1;
+    if (rnd < 0) { const char *e = getenv("RECOMP_ATEST_ROUND"); rnd = !(e && *e == '0'); }
+    emit(&o, rnd ? "    float ar = floor(fragColor.a * 255.0 + 0.5);\n" : "    float ar = fragColor.a * 255.0;\n");
     emit(&o,
-        "    float ar = fragColor.a * 255.0;\n"
         "    bool pass = true;\n"
         "    if (u_alpha_func == 0x200) pass = false;\n"
         "    else if (u_alpha_func == 0x201) pass = ar <  u_alpha_ref;\n"
@@ -370,6 +375,7 @@ static int psh_emit(const Nv2aPshKey *k, char *buf, size_t cap, int alpha_test)
         "    else if (u_alpha_func == 0x205) pass = ar != u_alpha_ref;\n"
         "    else if (u_alpha_func == 0x206) pass = ar >= u_alpha_ref;\n"
         "    if (!pass) discard;\n");
+    }
     emit(&o, "}\n");
     return o.overflow ? -1 : (int)(cap - o.left);
 }
