@@ -935,6 +935,21 @@ static uint32_t bytes_hash(uint32_t va, uint32_t bytes)
     return (h ^ i) * 16777619u;
 }
 
+/* Every byte, 8 at a time: for P8 textures, where a sampled hash misses changes (hppoa: the subtitle canvas,
+ * a 512x256 P8 texture the game rewrites with each line; the sampled dwords, every 2048 bytes as tex_bytes
+ * counts 4 bytes a texel, fell in its empty margins, so the first line stayed on screen). */
+static uint32_t bytes_hash_all(uint32_t va, uint32_t bytes)
+{
+    const uint8_t *mem = (const uint8_t *)xbox_GetMemoryOffset() + va;
+    uint64_t h = 0xCBF29CE484222325ull ^ bytes, x;
+    uint32_t i;
+    for (i = 0; i + 8 <= bytes; i += 8) {
+        memcpy(&x, mem + i, 8);
+        h = (h ^ x) * 0x100000001B3ull;
+    }
+    return (uint32_t)(h ^ (h >> 32));
+}
+
 static uint32_t tex_bytes(uint32_t color, uint32_t w, uint32_t h, uint32_t pitch)
 {
     if (color == 0x0C) return ((w + 3) / 4) * ((h + 3) / 4) * 8;
@@ -1238,7 +1253,10 @@ static id<MTLTexture> tex_get(uint32_t va, uint32_t color, uint32_t w, uint32_t 
         t->used = s_frame;
         return t->tex;
     }
-    hash = bytes_hash(va, face ? face * 6 : tex_bytes(color, w, h, pitch));
+    if (color == 0x0B && !face && !pitch)   /* P8: 1 byte a texel, every one hashed */
+        hash = bytes_hash_all(va, w * h);
+    else
+        hash = bytes_hash(va, face ? face * 6 : tex_bytes(color, w, h, pitch));
     if (color == 0x0B)
         hash ^= bytes_hash(s_palette_va, 1024) * 31u;
     if (t && t->hash == hash && t->rgen == nv2a_tex_replace_gen) {
