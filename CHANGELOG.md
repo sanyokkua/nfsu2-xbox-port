@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.1.4 (2026-11-26)
+
+Two renderer fixes from the Harry Potter Goblet of Fire port.
+
+- Movies: a changed movie frame is never missed. The movie picture is now checked byte by byte (it was sampled), so the
+  EA logo no longer stalls for about a quarter of a second as it fades in. Costs about 0.2 ms a frame while a movie plays.
+- Full screen: each frame is laid out in the size of the picture it is drawn into, so frames drawn while the window is
+  going full screen can no longer fill only the top-left part of the screen.
+- Everything else as in 0.1.3. Installed an earlier version? Open the new installer and choose **Rebuild**: it does not
+  ask for the disc again, and your saves and settings stay.
+
 ## 0.1.3 (2026-11-25)
 
 Engine and tool fixes from the Harry Potter Prisoner of Azkaban and Chamber of Secrets ports. For players: the first

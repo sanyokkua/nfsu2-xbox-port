@@ -254,3 +254,19 @@ CONTROL0 bit 16 is set, since this port has no W-buffer). Verified: build, `tool
 with all five off vs on: both render correctly; byte compares are useless (the route diverges run to run, even new vs new).
 Temporary counters showed that stencil op 0 and `lit_color` (fixed-function lighting) never run on that route and
 SET_CLIP_MIN/MAX is always 0..zmax, so these are no-ops for NFSU2 as played; the shader plumbing is exercised by every draw.
+
+## 15. GoF renderer fixes (hpgof 8acec1d, c5131c0; 2026-11-26, released in 0.1.4)
+
+- **Linear textures hashed in full** (`tex_get`). The movie frames are CPU-written linear 640x480 A8R8G8B8 textures
+  (double-buffered, `811B7xxx`); render targets reach `tex_get` only through `surf_find`. A temporary probe (not committed)
+  hashed each linear texture both ways over the boot movies (EA logo, THX, PSA, FMVOpening, 60 s): 1700 frame changes, 9
+  the sampled hash (one dword in 4.8 KB) missed, 8 of them in a row on the EA logo's fade-in (flips 190-204, ~0.25 s
+  stall). The full hash cost 0.21 ms per 1.2 MB frame (589 hashes, 124 ms), only while a movie plays.
+- **`present()` lays the frame out in the drawable's own size** after `nextDrawable` (GoF's first full-screen frames
+  filled the top-left part). A probe that compared `drawableSize` with the drawable's texture never saw a mismatch here
+  (3 full-screen boots, a windowed boot); taken as the same code, safe by construction.
+- Not taken: the `gof-backports` lifter/disassembler/kernel/tool commits. No SSE op they add is reached (the only UNIMPL
+  hits at run time are `cli`/`sti`/`in`/`out`/`wbinvd`), the XBE imports neither `NtSetTimerEx` nor `NtCreateTimer`, and
+  the disassembler changes would change the lifted code with no symptom to fix.
+- Verified: `tools/smoke.sh` OK, the boot movies and the front end (profile dialog) render; the DMG checks and a clean
+  install as in the release checklist.
